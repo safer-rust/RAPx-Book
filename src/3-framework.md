@@ -6,7 +6,7 @@ We refer to this approach as the **frontend** method because it allows developer
 
 ## Custom Cargo Commands
 To support project-level program analysis, we want the analysis tool to be integrated into cargo as [subcommands](https://doc.rust-lang.org/cargo/reference/external-tools.html). To this end, we can name the tool as cargo-toolname and place it in $CARGO_HOME/bin or $PATH. Then we can execute the tool via the following command.
-```
+```shell
 cargo toolname -more_arguments
 ```
 Cargo will automatically search the binaries named cargo-toolname from the paths. The following figure demonstrates the whole process before reaching our analysis program.
