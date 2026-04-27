@@ -11,7 +11,7 @@ rustup toolchain install nightly-2025-12-06 --profile minimal --component rustc-
 ```
 
 If you have multiple Rust versions, please ensure the default version is set to nightly-2025-12-06.
-```
+```shell
 rustup show
 ```
 
@@ -49,12 +49,12 @@ z3 = {version="0.13.3", features = ["static-link-z3"]}
 ```
 
 After this step, you should be able to see the RAPx plugin for cargo.
-```
+```shell
 cargo --list
 ```
 
 Execute the following command to run RAPx and print the help message:
-```
+```shell
 cargo rapx --help
 Usage: cargo rapx [OPTIONS] <COMMAND> [-- [CARGO_FLAGS]]
 
@@ -71,7 +71,7 @@ Options:
 ```
 
 ### Uninstall
-```
+```shell
 cargo uninstall rapx
 ```
 
