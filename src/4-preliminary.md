@@ -6,7 +6,7 @@ Our analysis platform is primarily based on two forms of Rust intermediate repre
  - [MIR](https://rustc-dev-guide.rust-lang.org/mir/index.html): A LLVM-IR-like, mid-level intermediate representation designed to simplify borrow checking, optimization, and program analysis. Note that MIR is not SSA.
 
 You can obtain the HIR or MIR of a Rust source file by executing the following commands:
-```
+```shell
 cargo rustc -- -Z unpretty=hir-tree
 cargo rustc -- -Zunpretty=mir
 ```
