@@ -55,27 +55,19 @@ cargo --list
 
 Execute the following command to run RAPx and print the help message:
 ```
-cargo rapx -help
-Usage:
-    cargo rapx [rapx options] -- [cargo check options]
+cargo rapx --help
+Usage: cargo rapx [OPTIONS] <COMMAND> [-- [CARGO_FLAGS]]
 
-RAPx Options:
+Commands:
+  analyze  perform various analyses on the crate, e.g., alias analysis, callgraph generation
+  check    check potential vulnerabilities in the crate, e.g., use-after-free, memory leak
+  help     Print this message or the help of the given subcommand(s)
 
-Application:
-    -F or -uaf      use-after-free/double free detection.
-    -M or -mleak    memory leakage detection.
-    -O or -opt      automatically detect code optimization chances.
-    -I or -infer    (under development) infer the safety properties required by unsafe APIs.
-    -V or -verify   (under development) verify if the safety requirements of unsafe API are satisfied.
-
-Analysis:
-    -alias          perform alias analysis (meet-over-paths)
-    -adg            generate API dependency graphs
-    -callgraph      generate callgraphs
-    -dataflow       (not supported yet) generate dataflow graphs
-    -heap           analyze if the type holds a piece of memory on heap
-    -audit          (under development) generate unsafe code audit units
-...
+Options:
+      --timeout <TIMEOUT>        specify the timeout seconds in running rapx
+      --test-crate <TEST_CRATE>  specify the tested package in the workspace
+  -h, --help                     Print help
+  -V, --version                  Print version
 ```
 
 ### Uninstall
