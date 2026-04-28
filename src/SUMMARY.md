@@ -15,7 +15,7 @@
   - [Dangling Pointer Detection](./6.1-dangling.md)
   - [Memory Leakage Detection](./6.2-memleak.md)
   - [Performance Bug Detection](./6.3-perf.md)
-  - [Unsafe Code Audit](./6.4-unsafe.md)
+  - [Unsafe Code Verification](./6.4-verification.md)
 - [Utilities](./7-utilities.md)
   - [Logging](./7.1-log.md)
 - [Case Study](./8-casestudy.md)
