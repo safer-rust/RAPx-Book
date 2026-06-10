@@ -7,7 +7,7 @@ To apply RAPx, a few minor modifications are required (see an example [here](htt
 
 ```shell
 cd ostd
-cargo rapx -audit -- --target x86_64-unknown-none
+cargo rapx check -f -- --target x86_64-unknown-none
 ```
 
 
