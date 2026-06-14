@@ -1,4 +1,4 @@
-# Chatper 4. Preliminary: Compiler Internals
+# Chapter 4. Preliminary: Compiler Internals
 
 ## IR
 Our analysis platform is primarily based on two forms of Rust intermediate representations: HIR and MIR.
