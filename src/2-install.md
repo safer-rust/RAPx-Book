@@ -1,16 +1,19 @@
 # Chapter 2. Installation and Usage Guide
 
 ## Platform Support
-* Linux
-* macOS (both x86_64 and aarch64 version)
+RAPx supports the following three platforms:
+* Linux (x86_64)
+* macOS (x86_64)
+* macOS (aarch64/Apple Silicon)
 
 ## Preparation
-The latest RAPx is developped based on Rust version nightly-2025-12-06. You can install this version using the following command.
+The latest RAPx is developed based on Rust version nightly-2026-04-03. You must install this toolchain along with three required components (`rustc-dev`, `rust-src`, `llvm-tools-preview`). Run the following command:
+
 ```shell
-rustup toolchain install nightly-2025-12-06 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
+rustup toolchain install nightly-2026-04-03 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
 ```
 
-If you have multiple Rust versions, please ensure the default version is set to nightly-2025-12-06.
+If you have multiple Rust versions, please ensure the default version is set to nightly-2026-04-03.
 ```shell
 rustup show
 ```
@@ -30,7 +33,7 @@ git clone https://github.com/safer-rust/RAPx.git
 You can combine the previous two steps into a single command:
 
 ```shell
-cargo +nightly-2025-12-06 install rapx --git https://github.com/safer-rust/RAPx.git
+cargo +nightly-2026-04-03 install rapx --git https://github.com/safer-rust/RAPx.git
 ```
 
 For macOS users, you may encounter compilation errors related to Z3 headers and libraries. There are two solutions:
@@ -85,6 +88,69 @@ Examples:
   4. verify annotated functions:
      cargo rapx verify --prepare-targets
 ```
+
+### `analyze` command
+
+```
+Usage: cargo rapx analyze <COMMAND>
+
+Commands:
+  alias       alias analysis (meet-over-paths by default)
+  adg         API dependency graphs
+  callgraph   callgraph generation
+  dataflow    dataflow graphs
+  owned-heap  analyze heap-owning types
+  paths       path-sensitive CFG paths
+  range       range analysis
+  scan        basic crate info
+  mir         print MIR
+  dot-mir     print MIR as DOT
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+### `check` command
+
+```
+Usage: cargo rapx check [OPTIONS]
+
+Options:
+  -f, --uaf [<UAF>]    detect use-after-free/double-free (optional level, default 1)
+  -m, --mleak          detect memory leakage
+  -o, --opt [<OPT>]    automatically detect code optimization chances
+                       [possible values: report, default, all]
+  -h, --help           Print help
+```
+
+### `verify` command
+
+The `verify` command provides a contract-based verification pipeline for functions annotated with `#[rapx::verify]`. It uses path-sensitive backward/forward analysis and Z3-based SMT solving to prove safety properties. RAPx supports three verification modes (see Chapter 6.4 for details).
+
+```
+Usage: cargo rapx verify [OPTIONS]
+
+Options:
+      --prepare-targets            identify #[rapx::verify] functions and list their safety contracts
+      --allow-pathseg-repeat <N>  number of extra SCC postfix repetitions during path enumeration (default 0)
+      --mode <MODE>               verification mode: scan, targeted, invless (default scan)
+  -h, --help                      Print help
+```
+
+### Environment Variables
+
+| var             | default when absent | possible values     | description                  |
+|-----------------|---------------------|---------------------|------------------------------|
+| `RAPX_LOG`       | info                | trace, debug, info, warn | verbosity of logging   |
+| `RAPX_CLEAN`     | true                | true, false         | run cargo clean before check |
+| `RAPX_RECURSIVE` | none                | none, shallow, deep | scope of packages to check   |
+| `RAPXFLAGS`      | (unset)             | CLI arguments       | arguments passed to `rapx` binary directly |
+
+For `RAPX_RECURSIVE`:
+* `none`: check for current folder
+* `shallow`: check for current workspace members
+* `deep`: check for all workspaces from current folder
 
 ### Uninstall
 ```shell
