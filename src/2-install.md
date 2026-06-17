@@ -7,13 +7,30 @@ RAPx supports the following three platforms:
 * macOS (aarch64/Apple Silicon)
 
 ## Preparation
-The latest RAPx is developed based on Rust version nightly-2026-04-03. You must install this toolchain along with three required components (`rustc-dev`, `rust-src`, `llvm-tools-preview`). Run the following command:
+
+RAPx requires a nightly Rust toolchain with three components: `rustc-dev`, `rust-src`, `llvm-tools-preview`.
+
+Three toolchain versions are supported:
+
+| Toolchain | Status | CI Job |
+|-----------|--------|--------|
+| `nightly-2026-04-03` | Pinned / tested | `asterinas` |
+| `nightly` (latest) | Always up-to-date | `latest` |
+| `nightly-2025-10-09` | Pinned / tested | `verify-std` |
+
+Install the recommended toolchain:
 
 ```shell
 rustup toolchain install nightly-2026-04-03 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
 ```
 
-If you have multiple Rust versions, please ensure the default version is set to nightly-2026-04-03.
+If you prefer the latest nightly:
+
+```shell
+rustup toolchain install nightly --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
+```
+
+If you have multiple Rust versions, please ensure the correct version is set as default:
 ```shell
 rustup show
 ```
