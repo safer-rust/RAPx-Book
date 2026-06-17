@@ -143,7 +143,7 @@ Options:
 
 ### `verify` command
 
-The `verify` command provides a contract-based verification pipeline for functions annotated with `#[rapx::verify]`. It uses path-sensitive backward/forward analysis and Z3-based SMT solving to prove safety properties. RAPx supports three verification modes (see Chapter 6.4 for details).
+The `verify` command provides a contract-based verification pipeline for functions annotated with `#[rapx::verify]`. It uses path-sensitive backward/forward analysis and Z3-based SMT solving to prove safety properties. RAPx supports three verification modes (see Chapter 7 for details).
 
 ```
 Usage: cargo rapx verify [OPTIONS]
