@@ -10,9 +10,9 @@ The `check` module at `rapx/src/check/` contains three main sub-modules:
 |--------|---------|---------|---------|
 | `safedrop/` | Dangling pointer (use-after-free/double-free) detection | `cargo rapx check -f` | 6.1 |
 | `rcanary/` | Memory leak detection via SMT-based analysis | `cargo rapx check -m` | 6.2 |
-| `opt/` | Performance anti-pattern detection | `cargo rapx check -o` | 6.3 |
+| `opt/` | Performance anti-pattern detection | `cargo rapx opt` | 6.3 |
 
-All check modules are invoked through the `cargo rapx check` sub-command with appropriate flags. Multiple flags can be combined to run several detectors simultaneously.
+All check modules are invoked through the `cargo rapx check` sub-command with appropriate flags. Multiple flags can be combined to run several detectors simultaneously. The optimization module is invoked separately via `cargo rapx opt`.
 
 ## Architecture
 

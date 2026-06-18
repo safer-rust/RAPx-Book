@@ -81,6 +81,7 @@ Usage: cargo rapx [OPTIONS] <COMMAND> [-- [CARGO_FLAGS]]
 Commands:
   analyze  perform various analyses on the crate, e.g., alias analysis, callgraph generation
   check    check potential vulnerabilities in the crate, e.g., use-after-free, memory leak
+  opt      detect code optimization opportunities
   verify   verify annotated functions in the crate, e.g., identify #[rapx::verify] targets
   help     Print this message or the help of the given subcommand(s)
 
@@ -99,7 +100,7 @@ Examples:
   1. detect use-after-free and memory leak:
      cargo rapx check -f -m
   2. detect optimization opportunities:
-     cargo rapx check -o report
+     cargo rapx opt
   3. perform alias analysis:
      cargo rapx analyze alias
   4. verify annotated functions:
@@ -136,9 +137,13 @@ Usage: cargo rapx check [OPTIONS]
 Options:
   -f, --uaf [<UAF>]    detect use-after-free/double-free (optional level, default 1)
   -m, --mleak          detect memory leakage
-  -o, --opt [<OPT>]    automatically detect code optimization chances
-                       [possible values: report, default, all]
   -h, --help           Print help
+```
+
+### `opt` command
+
+```
+Usage: cargo rapx opt
 ```
 
 ### `verify` command
