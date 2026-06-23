@@ -11,12 +11,13 @@ Writing program analysis tools is challenging. In this project, we also aim to p
 
 ## Architecture
 
-RAPx is organized into three top-level modules:
+RAPx is organized into four top-level modules:
 
 | Module | Crate path | Purpose |
 |--------|-----------|---------|
 | **Analysis** | `rapx::analysis` | Foundational static analyses — path enumeration, alias analysis, dataflow, range analysis, call graphs, API dependency graphs, owned-heap classification, and safety-flow analysis. Each analysis implements the `Analysis` trait and can be composed downstream. |
-| **Check** | `rapx::check` | Bug detection passes built on top of the analysis layer — use-after-free / dangling pointer detection (`SafeDrop`), memory leak detection (`rCanary`), and performance anti-pattern checks (`Opt`). |
+| **Check** | `rapx::check` | Bug detection passes built on top of the analysis layer — use-after-free / dangling pointer detection (`SafeDrop`) and memory leak detection (`rCanary`). |
+| **Optimization** | `rapx::check::opt` | Performance anti-pattern detection — bounds checks, encoding inefficiencies, unnecessary cloning, suboptimal collection usage, and iterator optimizations. |
 | **Verify** | `rapx::verify` | Contract-based verification of unsafe code. Collects verification targets, resolves callee safety contracts from `#[rapx::requires]` annotations, enumerates SCC-aware CFG paths to each unsafe callsite, performs backward/forward MIR state tracking, and dispatches SMT queries via Z3 to prove or disprove safety preconditions. |
 
 ## Vision

@@ -194,7 +194,7 @@ The `RapCallback` struct in `lib.rs` implements `rustc_driver::Callbacks` with t
 
 ## The Analysis Trait
 
-Every RAPx analysis module implements the [`Analysis`] trait defined in `rapx/src/analysis/mod.rs`:
+Every RAPx analysis module implements the [`Analysis`] trait defined in [`rapx/src/analysis/mod.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/analysis/mod.rs):
 
 ```rust
 pub trait Analysis {
@@ -269,9 +269,9 @@ This has practical consequences:
 
 - **Pinned toolchain**: RAPx ships a `rust-toolchain.toml` specifying an exact nightly version (e.g., `nightly-2026-04-03`). Users must install this version.
 - **Breakage on upgrade**: Bumping the nightly version typically requires updating dozens of API calls across the codebase, as MIR statement/terminator variants, field names, and module paths shift.
-- **Conditional compilation**: The `compat.rs` module (`rapx/src/compat.rs`) centralizes version-gated re-exports. `build.rs` detects the rustc version at build time and sets `cfg` flags like `rapx_rustc_ge_193`, `rapx_rustc_ge_196`, `rapx_rustc_ge_198`, `rustc_spanned_at_root`, etc. Source files use these flags to adapt to API changes without duplicating version checks.
+- **Conditional compilation**: The [`compat.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/compat.rs) module (`rapx/src/compat.rs`) centralizes version-gated re-exports. `build.rs` detects the rustc version at build time and sets `cfg` flags like `rapx_rustc_ge_193`, `rapx_rustc_ge_196`, `rapx_rustc_ge_198`, `rustc_spanned_at_root`, etc. Source files use these flags to adapt to API changes without duplicating version checks.
 
-Example from `compat.rs`:
+Example from [`compat.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/compat.rs):
 
 ```rust
 // Spanned moved from rustc_span::source_map to rustc_span root in rustc 1.97
@@ -290,7 +290,7 @@ let field_ty = field.ty(self.tcx, substs).skip_norm_wip();
 let field_ty = field.ty(self.tcx, substs);
 ```
 
-The CI (`rapx/.github/workflows/test.yml`) tests against multiple nightly versions to catch regressions early.
+The CI ([`rapx/.github/workflows/test.yml`](https://github.com/safer-rust/RAPx/blob/main/.github/workflows/test.yml)) tests against multiple nightly versions to catch regressions early.
 
 ### Stable MIR (SMI)
 
@@ -303,4 +303,4 @@ However, Stable MIR has limitations that make it unsuitable for RAPx's current n
 - **Evolving coverage**: SMI does not yet expose all MIR constructs that RAPx depends on (e.g., `TerminatorKind::InlineAsm`, `StatementKind::Intrinsic`, certain `AggregateKind` variants).
 - **No standard library integration**: RAPx links against `core`/`alloc`/`std` to build contract databases and call effect summaries. SMI targets external tooling that operates on already-compiled crates.
 
-RAPx tracks the Stable MIR effort and may adopt it for MIR querying in the future, while retaining nightly-only hooks for compilation interception and HIR access. The `compat.rs` abstraction layer is designed to make such a migration feasible: most analysis code already imports compiler types through centralized re-exports rather than directly from `rustc_middle`.
+RAPx tracks the Stable MIR effort and may adopt it for MIR querying in the future, while retaining nightly-only hooks for compilation interception and HIR access. The [`compat.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/compat.rs) abstraction layer is designed to make such a migration feasible: most analysis code already imports compiler types through centralized re-exports rather than directly from `rustc_middle`.

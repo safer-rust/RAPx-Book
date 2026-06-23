@@ -1,6 +1,6 @@
-# Chapter 6.3. Performance Bug Detection
+# Chapter 7. Optimization
 
-This module identifies performance bottlenecks and inefficiencies using static analysis methods. The implementation lives at `rapx/src/check/opt/`.
+This module identifies performance bottlenecks and inefficiencies using static analysis methods. The implementation lives at [`rapx/src/check/opt/`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/check/opt/).
 
 ## Usage
 
@@ -37,7 +37,7 @@ The module covers six categories of performance checks:
 
 ## Test Cases
 
-The `tests/opt/` directory contains three end-to-end test cases:
+The [`tests/opt/`](https://github.com/safer-rust/RAPx/blob/main/rapx/tests/opt/) directory contains three end-to-end test cases:
 
 ### bounds_len — Bounds Checking
 

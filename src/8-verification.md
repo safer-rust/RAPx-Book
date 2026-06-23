@@ -1,6 +1,6 @@
-# Chapter 7. Verification
+# Chapter 8. Verification
 
-Unsafe code enables low-level operations while circumventing Rust's safety guarantees, and may introduce undefined behavior (UB) if misused. The verification module (`rapx::verify`) provides a staged pipeline for checking that unsafe call sites satisfy their callee's safety preconditions. It combines path-sensitive MIR traversal, abstract interpretation, and Z3-based SMT solving to produce verdicts of **Proved** or **Unproved** for each safety property at each unsafe call site.
+Unsafe code enables low-level operations while circumventing Rust's safety guarantees, and may introduce undefined behavior (UB) if misused. The verification module ([`rapx::verify`](https://github.com/safer-rust/RAPx/tree/main/rapx/src/verify/)) provides a staged pipeline for checking that unsafe call sites satisfy their callee's safety preconditions. It combines path-sensitive MIR traversal, abstract interpretation, and Z3-based SMT solving to produce verdicts of **Proved** or **Unproved** for each safety property at each unsafe call site.
 
 ## Design Principles
 
@@ -20,13 +20,13 @@ RAPx's verification is **contract-based** rather than full functional verificati
 
 This design trades full functional correctness for scalability: it avoids the need to annotate every function with pre/post-conditions, and it handles standard library calls through a curated database rather than through inter-procedural MIR analysis.
 
-## 7.1 Verification Modes
+## 8.1 Verification Modes
 
 RAPx supports three verification modes, selectable via `cargo rapx verify --mode <MODE>`. Each mode targets a different use case in the development workflow.
 
 ### `scan` Mode (Default)
 
-Fully automatic. The `VerifyTargetCollector` (`target.rs`) walks all function bodies in the crate using a HIR visitor. It applies a pre-filter (`hir_contains_unsafe`):
+Fully automatic. The `VerifyTargetCollector` ([`target.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/target.rs)) walks all function bodies in the crate using a HIR visitor. It applies a pre-filter (`hir_contains_unsafe`):
 
 - the function is declared `unsafe fn`, or
 - the function body contains an `unsafe { }` block, or
@@ -116,14 +116,14 @@ Output example:
 
 This is useful for understanding which contracts the verifier will attempt to prove before running the full (potentially time-consuming) verification.
 
-The `--allow-pathseg-repeat` flag controls how many extra SCC postfix repetitions are allowed during path enumeration (default 0, meaning each SCC postfix segment appears once; set to 1 for one extra repetition, etc.). The `VerifyRun` analysis automatically increments this value across multiple rounds (0, 1, 2, ...) when earlier rounds fail, up to a maximum of `MAX_REPEAT` (3). This means if a property cannot be proved with `repeat=0`, the verifier retries with `repeat=1`, `repeat=2`, and `repeat=3` before giving a final `Unproved` verdict. Each round explores more loop unrollings, which may reveal additional facts needed for the proof.
+The `--postfix-repeat` flag controls how many extra SCC postfix repetitions are allowed during path enumeration (default 0, meaning each SCC postfix segment appears once; set to 1 for one extra repetition, etc.). The `VerifyRun` analysis automatically increments this value across multiple rounds (0, 1, 2, ...) when earlier rounds fail, up to a maximum of `MAX_REPEAT` (3). This means if a property cannot be proved with `repeat=0`, the verifier retries with `repeat=1`, `repeat=2`, and `repeat=3` before giving a final `Unproved` verdict. Each round explores more loop unrollings, which may reveal additional facts needed for the proof.
 
-## 7.2 Verification Target Collection
+## 8.2 Verification Target Collection
 
-The `VerifyTargetCollector` (`target.rs`) implements `rustc_hir::intravisit::Visitor` and visits every function body. For each function, it builds a `FunctionTarget` containing:
+The `VerifyTargetCollector` ([`target.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/target.rs)) implements `rustc_hir::intravisit::Visitor` and visits every function body. For each function, it builds a `FunctionTarget` containing:
 
 * **`def_id`**: The function's DefId.
-* **`callsites`**: All call terminators whose callee is an `unsafe fn`, collected from MIR by `collect_unsafe_callsites` (`helpers.rs`). Each `Callsite` records the caller DefId, callee DefId, basic block, and argument operands.
+* **`callsites`**: All call terminators whose callee is an `unsafe fn`, collected from MIR by `collect_unsafe_callsites` ([`helpers.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/helpers.rs)). Each `Callsite` records the caller DefId, callee DefId, basic block, and argument operands.
 * **`callee_requires`**: A `HashMap<DefId, Vec<Property>>` mapping each unsafe callee to its required safety properties, resolved from `#[rapx::requires]` annotations or the bundled `std-contracts.json` asset.
 * **`caller_requires`**: The caller's own `#[rapx::requires]` contracts, used as entry assumptions during verification.
 * **`struct_invariants`**: If the function is a method on a struct with `#[rapx::invariant]` annotations, those invariants are included for struct-soundness checking.
@@ -197,9 +197,9 @@ The normalization step replaces:
 - `ty:TN` → the Nth generic type parameter
 - `const:N` → a literal constant N
 
-## 7.3 Safety Property Contracts
+## 8.3 Safety Property Contracts
 
-Safety properties are defined in `contract.rs` as the `PropertyKind` enum. Each `Property` consists of a `PropertyKind` and a vector of `PropertyArg` values.
+Safety properties are defined in [`contract.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/contract.rs) as the `PropertyKind` enum. Each `Property` consists of a `PropertyKind` and a vector of `PropertyArg` values.
 
 ### Property Kinds
 
@@ -342,16 +342,16 @@ These invariants must hold at all times for any instance of the struct. The veri
 2. Mutating methods preserve all invariants.
 3. Methods that take `&self` can assume invariants hold on entry.
 
-## 7.4 The Verification Pipeline
+## 8.4 The Verification Pipeline
 
-The core verification flow is implemented across three stages orchestrated by `VerifyEngine` (`engine.rs`) and driven by `VerifyDriver` (`driver.rs`):
+The core verification flow is implemented across three stages orchestrated by `VerifyEngine` ([`engine.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/engine.rs)) and driven by `VerifyDriver` ([`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs)):
 
 ```
 VerifyDriver::verify_function()
   │
   ├─ 1. Path Extraction (path.rs / PathGraph)
   │     Build finite, acyclic paths from CFG to each callsite
-  │     using SCC-aware enumeration (PathGraph — Chapter 5.1).
+  │     using SCC-aware enumeration (PathGraph — [Chapter 5.1](./5.1-path.md)).
   │     Stored in a FunctionPaths per-callsite PathTree.
   │
   └─ 2. Callsite Verification (engine.rs)
@@ -372,12 +372,12 @@ VerifyDriver::verify_function()
               Returns Proved or Unproved.
 ```
 
-### 7.4.1 Path Extraction
+### 8.4.1 Path Extraction
 
-`PathExtractor` (`path.rs`) builds finite verification paths from the function's CFG to each unsafe callsite. It uses `PathGraph` (from `analysis::path_analysis::graph`) to:
+[`PathExtractor`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/path_extractor.rs) ([`path.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/path.rs)) builds finite verification paths from the function's CFG to each unsafe callsite. It uses `PathGraph` (from [`analysis::path_analysis::graph`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/analysis/path_analysis/graph.rs)) to:
 
 1. Build the CFG and detect strongly connected components (SCCs).
-2. Enumerate acyclic paths through the CFG, allowing controlled SCC postfix repetition via `allow_pathseg_repeat`.
+2. Enumerate acyclic paths through the CFG, allowing controlled SCC postfix repetition via `postfix_repeat`.
 3. Filter paths that reach the target callsite block.
 4. Truncate at the target block and deduplicate by prefix, storing them in a `PathTree` per callsite.
 
@@ -402,20 +402,20 @@ A path-insensitive analysis would merge the states from both branches, losing th
 
 #### SCC Decomposition and Path Reachability
 
-SCC decomposition handles loops by identifying the dominator (enter block) of each SCC and decomposing the SCC tree hierarchically. Path reachability filtering (Chapter 5.1) further prunes paths that are structurally possible but semantically impossible — for example, when two `SwitchInt` branches on the same enum discriminant would produce contradictory constraints.
+SCC decomposition handles loops by identifying the dominator (enter block) of each SCC and decomposing the SCC tree hierarchically. Path reachability filtering ([Chapter 5.1](./5.1-path.md)) further prunes paths that are structurally possible but semantically impossible — for example, when two `SwitchInt` branches on the same enum discriminant would produce contradictory constraints.
 
 The combination of SCC decomposition and reachability filtering ensures that the verifier explores a manageable, relevant subset of paths rather than all combinatorially possible CFG traversals.
 
-### 7.4.2 Backward Visit
+### 8.4.2 Backward Visit
 
-The `BackwardVisitor` (`path_refine/visitor.rs`) starts from the callsite and walks backward along the path, collecting only MIR statements and terminators that are *relevant* to the property being checked. Items are classified as:
+The `BackwardVisitor` ([`path_refine/visitor.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/path_refine/visitor.rs)) starts from the callsite and walks backward along the path, collecting only MIR statements and terminators that are *relevant* to the property being checked. Items are classified as:
 
 - **`Statement`**: A MIR statement whose def-use chain reaches the property's target place. For example, `_5 = _4 + 1` is retained if `_5` flows into a `ValidPtr` target argument.
 - **`Terminator`**: A MIR terminator (call, switch, assert) that influences control-flow constraints. `SwitchInt` and `Assert` terminators constrain branch conditions; `Call` terminators for safe functions are retained because their return values may participate in def-use chains.
 - **`ContractFact`**: A caller's `#[rapx::requires]` contract injected as an entry assumption at the start of each path. These are prepended to the retained items to seed the forward analysis.
 - **`Forget`**: A conservatively dropped fact (e.g., after an unknown call that may mutate a tracked pointer). This models the verifier's incomplete knowledge — when a call's effect on a tracked value is unknown, the verifier erases facts about that value rather than making unsound assumptions.
 
-The backward visitor uses def-use analysis (`def_use.rs`) to trace value flow from the callsite arguments back to their origins, filtering out irrelevant operations. It also consults `CallDependencySummary` (from `call_summary.rs`) to determine which callee arguments the return value depends on.
+The backward visitor uses def-use analysis ([`def_use.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/def_use.rs)) to trace value flow from the callsite arguments back to their origins, filtering out irrelevant operations. It also consults `CallDependencySummary` (from [`call_summary.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/call_summary.rs)) to determine which callee arguments the return value depends on.
 
 #### Def-Use Chain Tracing
 
@@ -428,9 +428,9 @@ The def-use analysis works by building a use-def chain (mapping each use of a lo
 
 This filters out statements that compute unrelated values, keeping only the slice of MIR that is relevant to the property at hand. For a function with hundreds of lines of MIR but only one unsafe call, this dramatically reduces the state space that the forward visitor must model.
 
-### 7.4.3 Forward Visit
+### 8.4.3 Forward Visit
 
-The `ForwardVisitor` (`forward_visit.rs`) walks forward along the retained MIR items, building an abstract state consisting of:
+The `ForwardVisitor` ([`forward_visit.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/forward_visit.rs)) walks forward along the retained MIR items, building an abstract state consisting of:
 
 - **`values`**: A map from MIR locals to `AbstractValue` (Place, Ref, RawPtr, ConstInt, Cast, Binary op, CallResult, etc.). This is the value-tracked state — what each local currently represents.
 - **`facts`**: A list of `StateFact` entries recording semantic properties inferred from operations and calls.
@@ -455,19 +455,19 @@ The forward visitor maintains a map from MIR locals to abstract values. When it 
 
 The abstract domain is path-sensitive: the visitor processes each path independently, so facts established on one branch do not leak into another. This is what enables proving call sites on one branch even when another branch would fail.
 
-### 7.4.4 SMT Check
+### 8.4.4 SMT Check
 
-The `SmtChecker` (`smt_check/`) encodes the forward state facts and the target property as SMT-LIB assertions and invokes a Z3 solver to check whether the facts logically imply the property. Each property kind has a dedicated checking module:
+The `SmtChecker` ([`smt_check/`](https://github.com/safer-rust/RAPx/tree/main/rapx/src/verify/smt_check/)) encodes the forward state facts and the target property as SMT-LIB assertions and invokes a Z3 solver to check whether the facts logically imply the property. Each property kind has a dedicated checking module:
 
 | Module | Checks |
 |--------|--------|
-| `valid_ptr.rs` | Pointer validity for the given type and count |
-| `align.rs` | Pointer alignment matches the type requirement |
-| `in_bound.rs` | Pointer arithmetic stays within allocation bounds |
-| `init.rs` | Memory initialization state |
-| `non_null.rs` | Pointer non-nullness |
-| `allocated.rs` | Memory allocation tracking |
-| `valid_num.rs` | Numeric range constraints |
+| [`valid_ptr.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/valid_ptr.rs) | Pointer validity for the given type and count |
+| [`align.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/align.rs) | Pointer alignment matches the type requirement |
+| [`in_bound.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/in_bound.rs) | Pointer arithmetic stays within allocation bounds |
+| [`init.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/init.rs) | Memory initialization state |
+| [`non_null.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/non_null.rs) | Pointer non-nullness |
+| [`allocated.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/allocated.rs) | Memory allocation tracking |
+| [`valid_num.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/valid_num.rs) | Numeric range constraints |
 
 The checker returns a `CheckResult::Proved` if the SMT solver confirms the property holds under all modeled assumptions, or `CheckResult::Unproved` otherwise.
 
@@ -495,9 +495,9 @@ If Z3 determines these assertions are satisfiable (i.e., it is possible for the 
 
 RAPx uses the `z3` crate for native Rust bindings to the Z3 solver. The solver is invoked via a timeout-limited context to prevent infinite loops on complex encodings. The default solver timeout is 5 seconds per check; if Z3 times out, the result is `CheckResult::Unproved` (the verifier errs on the side of caution).
 
-### 7.4.5 Call Effect Summaries
+### 8.4.5 Call Effect Summaries
 
-`call_summary.rs` maintains a database of call effects for common unsafe and standard library functions. Each entry maps a function path to a `CallEffectSummary` with effects such as:
+[`call_summary.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/call_summary.rs) maintains a database of call effects for common unsafe and standard library functions. Each entry maps a function path to a `CallEffectSummary` with effects such as:
 
 | Effect | Description | Examples |
 |--------|-------------|----------|
@@ -530,14 +530,14 @@ During **forward analysis**, `effect_summary()` provides `CallEffectSummary` wit
 
 Users can extend the call summary database for their own libraries by adding entries to a custom JSON file. The format mirrors `std-contracts.json` with function paths mapped to effect lists. This is necessary for inter-procedural verification of custom unsafe abstractions.
 
-## 7.5 Struct Invariant Verification
+## 8.5 Struct Invariant Verification
 
 When a function target is a method on a struct with `#[rapx::invariant(...)]` annotations, the verifier additionally checks that the struct invariants are maintained:
 
 - **Constructors** (functions returning `Self`): Paths are filtered to return blocks. Invariants must be proved at each return checkpoint, with only the constructor's own `#[rapx::requires]` as entry assumptions.
 - **Methods**: Invariants are assumed at function entry (prepended as `ContractFact` items in the backward visitor) and verified at all return points.
 
-The `verify_struct_invariants` method in `driver.rs` handles this via `build_invariant_paths()`:
+The `verify_struct_invariants` method in [`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs) handles this via `build_invariant_paths()`:
 
 - For constructors: prefixes paths to return blocks with the constructor's contracts.
 - For methods: builds whole-CFG paths with invariants assumed at entry and checked at every return block.
@@ -581,9 +581,9 @@ The verifier traces through `push`:
 2. The `self.ptr.add(self.len).write(val)` call requires `ValidPtr` and `Align` for the computed pointer. The `assert!(self.len < self.cap)` provides the `ValidNum` constraint needed to prove `ValidPtr` for the offset pointer.
 3. At exit, invariants are re-checked: `self.ptr` and `self.cap` are unchanged, so both invariants still hold. Proved.
 
-## 7.6 Invless Mode Sequences
+## 8.6 Invless Mode Sequences
 
-In `invless` mode (`run_invless_sequences` in `driver.rs`), when a struct has constructors and methods, the verifier generates verification sequences:
+In `invless` mode (`run_invless_sequences` in [`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs)), when a struct has constructors and methods, the verifier generates verification sequences:
 
 ```
 Constructor → Method
@@ -593,7 +593,7 @@ Constructor → Mutator₁ → Mutator₂ → Method
 
 Each sequence propagates the constructor's `#[rapx::requires]` contracts through the mutator chain. Mutated fields are tracked via `get_mutated_fields`, and contracts referencing those fields are filtered out at each step.
 
-For each sequence, the verifier builds a `FunctionTarget` with the accumulated `caller_requires`, then runs the standard pipeline with incremented `allow_pathseg_repeat`. Results are emitted per sequence with a chain label like `new_in → push → into_raw_parts_with_alloc`.
+For each sequence, the verifier builds a `FunctionTarget` with the accumulated `caller_requires`, then runs the standard pipeline with incremented `postfix_repeat`. Results are emitted per sequence with a chain label like `new_in → push → into_raw_parts_with_alloc`.
 
 ### Sequence Generation Algorithm
 
@@ -632,9 +632,9 @@ The `MAX_CHAIN_DEPTH` limits sequence length to avoid combinatorial explosion. C
 
 This helps you identify where `#[rapx::invariant]` annotations are needed and what they should contain.
 
-## 7.7 Raw Pointer Dereference Checking
+## 8.7 Raw Pointer Dereference Checking
 
-In addition to explicit unsafe call sites, the verifier checks raw pointer dereferences (`*ptr` and `*ptr = val`) in unsafe blocks. `build_raw_ptr_deref_checks()` (`target.rs`) scans the MIR for dereference projections on raw pointer types and creates pseudo-callsites with the following properties:
+In addition to explicit unsafe call sites, the verifier checks raw pointer dereferences (`*ptr` and `*ptr = val`) in unsafe blocks. `build_raw_ptr_deref_checks()` ([`target.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/target.rs)) scans the MIR for dereference projections on raw pointer types and creates pseudo-callsites with the following properties:
 
 - **Read dereferences** (`*ptr`): Requires `ValidPtr(ptr, T, 1)`, `Align(ptr, T)`, and `Typed(ptr, T)`.
 - **Write dereferences** (`*ptr = val`): Requires `ValidPtr(ptr, T, 1)` and `Align(ptr, T)`.
@@ -658,16 +658,16 @@ unsafe fn write_first_element(slice: &mut [u32]) {
 
 The verifier traces `ptr` back to `slice.as_mut_ptr()`, whose call effect summary establishes that `ptr` points into `slice`'s allocation, that `slice.len() > 0` (implied by the reference's validity), and that `ptr` is properly aligned. Both properties are Proved.
 
-## 7.8 Verification Report
+## 8.8 Verification Report
 
-The `VerificationReport` (`report.rs`) aggregates results for all (callsite, path, property) triples. Each `PropertyCheckResult` records:
+The `VerificationReport` ([`report.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/report.rs)) aggregates results for all (callsite, path, property) triples. Each `PropertyCheckResult` records:
 
 - The callsite location (`CallsiteLocation`: caller DefId + basic block).
 - Path and property indices.
 - The property being checked and the verification result (`Proved` / `Unproved`).
 - Forward and backward visit diagnostics.
 
-The `emit_verify_summary` function in `driver.rs` groups results by callsite and prints a compact summary:
+The `emit_verify_summary` function in [`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs) groups results by callsite and prints a compact summary:
 
 ```
 ============================================================
@@ -729,7 +729,7 @@ When a property is `Unproved`, the report includes diagnostics from the backward
 
 In this example, the `Typed` check failed because the forward facts don't establish that `(*_1).0` holds a valid value of type `T`. The missing piece might be a `KnownInit` fact that could be supplied by adding `#[rapx::requires(Init(self.0, T, 1))]` to the function, or by annotating a preceding `ptr::write` call in the call summary database.
 
-## 7.9 Example: Verifying `Vec::into_raw_parts_with_alloc`
+## 8.9 Example: Verifying `Vec::into_raw_parts_with_alloc`
 
 Consider `Vec::into_raw_parts_with_alloc` from the standard library. Its MIR contains a `ptr::read` call on the allocator field:
 
@@ -806,7 +806,7 @@ The verifier produces:
 
 The report reveals that on the `cond=false` path, no `ValidNum(index < len)` constraint is established, so `ValidPtr(buffer.add(index), u8, 1)` cannot be proved. The developer can fix this by adding the bounds check to all paths or restructuring the control flow.
 
-## 7.10 Limitations and Current Status
+## 8.10 Limitations and Current Status
 
 ### Current Limitations
 
@@ -814,7 +814,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 - **Inter-procedural analysis is limited** to pre-defined call summaries; full cross-function MIR-level verification is not supported. This means custom unsafe functions that call other custom unsafe functions require either explicit contracts on both or manual entry in the call summary database.
 - **The SMT encoding approximates** numeric constraints and may produce false positives for complex arithmetic. Specifically, non-linear arithmetic (e.g., multiplication of two variables) is not well-supported by the underlying SMT theories and may result in `Unproved` results even when the property holds.
 - **Struct invariant verification** for method sequences exceeding the maximum chain depth is not explored, and field mutations in deeply nested method chains may be over-approximated.
-- **Safety contracts for standard library functions** are maintained manually in `std-contracts.json` and may be incomplete. Functions not covered by the database are silently skipped.
+- **Safety contracts for standard library functions** are maintained manually in [`std-contracts.json`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/attribute/assets/std-contracts.json) and may be incomplete. Functions not covered by the database are silently skipped.
 - **The verifier supports a fixed set** of `PropertyKind` variants; unknown contract tags are classified as `Unknown` and produce `CheckResult::Unknown`.
 - **Concurrent code** (e.g., `Arc`, `Mutex`, atomics) is not modeled. The verification assumes single-threaded execution and does not account for data races or memory ordering.
 - **Inline assembly** (`asm!` blocks) are not analyzed. Functions containing inline assembly are conservatively treated as having unknown effects.
