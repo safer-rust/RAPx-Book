@@ -406,6 +406,78 @@ SCC decomposition handles loops by identifying the dominator (enter block) of ea
 
 The combination of SCC decomposition and reachability filtering ensures that the verifier explores a manageable, relevant subset of paths rather than all combinatorially possible CFG traversals.
 
+#### SCC-Aware Path Expansion and Multi-Occurrence Checkpoint Enumeration
+
+When a verification checkpoint lies inside a loop body (an SCC), the path tree contains **multiple occurrences** of the same basic block at different loop iteration depths. For example, with a checkpoint at block 8 inside a loop body `[5,6,7,8,9,10]`:
+
+```
+PathTree (annotated):
+  Node(0) → Node(1) → Node(3) → Node(5) → Node(6) → Node(7) → Node(8)[checkpoint, iter=1]
+    → Node(9) → Node(10) → Node(5) → ... → Node(8)[checkpoint, iter=2]
+      → ... → Node(8)[checkpoint, iter=N]
+```
+
+The backward slicer's `build_leaf_items` function processes the path tree in post-order. To capture deeper SCC occurrences (iterations 2..N), it continues processing children even at the checkpoint block — a technique called **child-path expansion**:
+
+```
+build_leaf_items(node=Node(8)[iter=1]):
+  1. Build checkpoint_items for this occurrence (leaf)
+  2. for child in node.children:  // continues past the checkpoint!
+       recursively process Node(9), ..., Node(8)[iter=2]
+       thread through parent block's terminator/statements
+       produce another leaf for the deeper occurrence
+  3. return all leaves
+```
+
+Each leaf represents one verification path corresponding to a specific loop iteration count. This enables the verifier to check safety properties at multiple iteration depths — critical for detecting off-by-one errors that only manifest after many iterations.
+
+The `walk_all_prefixes` method (`PathTree`) provides an alternative enumeration strategy: instead of child-path expansion, it walks the tree and calls a callback at **every** occurrence of a target block (not just the first), continuing past the block into its children. Each callback receives the complete path prefix from the root, including all intermediate loop headers. This is useful when the child-path expansion may omit constraints from the last partial iteration's loop header.
+
+#### Convergence-Based Deep Loop Unrolling (Auto-Detector)
+
+After the initial verification pass (`postfix_repeat=0`) where all InBound properties are Proved, the verifier triggers an **auto-detector** that tries progressively deeper loop unrolling to catch off-by-one bugs:
+
+```
+VerifyRun::run()
+  ├─ Phase 1: Initial verification (postfix_repeat=0)
+  │     all InBound Proved → trigger auto-detector
+  │
+  └─ Phase 1.5: InBound loop-depth detector
+        for repeat in 1..=16:
+          driver = VerifyDriver::new_with_repeat(repeat)
+          run verification with deeper SCC unrolling
+          collect InBound results
+          apply three stopping criteria
+```
+
+The detector iterates increasing `postfix_repeat` values from 1 to 16. At each level, the path enumerator generates paths with proportionally more loop body repetitions:
+
+| `postfix_repeat` | Max loop iterations in path |
+|-----------------|---------------------------|
+| 0 (initial) | 1 |
+| 1 | 2 |
+| 2 | 3 |
+| ... | ... |
+| 9 | 10 |
+
+**Three stopping criteria** govern the unrolling process:
+
+1. **Unproven InBound found**: If any InBound property is unproved at the current depth (excluding "path has precision loss" and "could not connect" Unknowns — these are SMT precision artifacts, not genuine violations), the detector declares UNSOUND and propagates the deep-path results into the final report.
+
+2. **Empty streak ≥ 10**: If 10 consecutive unrolling levels all produce Proved results without reaching any unproven state, the detector concludes that further unrolling is unlikely to reveal new violations and stops.
+
+3. **Panic caught**: If a deeper unrolling level triggers a rustc ICE or internal error, the detector gracefully stops.
+
+**Why convergence matters**: Loop-depth detection exploits the observation that many InBound violations are "diverging" — they are Proved at shallow depths but become Unproved at deeper depths as the loop counter approaches the bound. The detector progressively probes deeper until it either finds the violation or the result stabilizes (all Proved for 10 consecutive levels), ensuring the verifier doesn't waste time on indefinite unrolling.
+
+**Category 1 vs Category 2 violations**:
+
+- **Category 1 (static)**: The off-by-one is detectable regardless of unrolling depth. For example, `ptr.add(i + 1)` with guard `i < len` — the SMT can symbolically reason that `i + 1` may exceed `len` even with a single loop body execution. These are caught in the initial pass.
+
+- **Category 2 (diverging)**: The violation only manifests at deeper iterations. For example, `ptr.wrapping_add(i + 1)` with `len >= 10` and `i < len` — at `i=9`, the check needs `len >= 11`, but the initial pass only explores up to one iteration (where `i < 1` → vacuous). The auto-detector progressively unrolls until it reaches `repeat=9` where the 10th iteration reveals the off-by-one.
+
+This mechanism is implemented in `VerifyRun::run()` ([`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs)) at lines 653-724.
+
 ### 8.4.2 Backward Visit
 
 The `BackwardVisitor` ([`path_refine/visitor.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/path_refine/visitor.rs)) starts from the callsite and walks backward along the path, collecting only MIR statements and terminators that are *relevant* to the property being checked. Items are classified as:
@@ -811,6 +883,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 ### Current Limitations
 
 - **Path enumeration is capped** at 1024 paths per callsite. Functions with very complex control flow (e.g., deeply nested loops with many conditional branches) may exceed this limit, in which case the verifier processes the first 1024 paths and reports a warning.
+- **Loop-depth auto-detection** supports up to 16 iterations (MAX_LOOP_INBOUND_UNROLL). Off-by-one bugs requiring more than 16 loop iterations to manifest will not be detected by the auto-detector. Additionally, the detector uses a 10-level convergence streak to avoid indefinite unrolling.
 - **Inter-procedural analysis is limited** to pre-defined call summaries; full cross-function MIR-level verification is not supported. This means custom unsafe functions that call other custom unsafe functions require either explicit contracts on both or manual entry in the call summary database.
 - **The SMT encoding approximates** numeric constraints and may produce false positives for complex arithmetic. Specifically, non-linear arithmetic (e.g., multiplication of two variables) is not well-supported by the underlying SMT theories and may result in `Unproved` results even when the property holds.
 - **Struct invariant verification** for method sequences exceeding the maximum chain depth is not explored, and field mutations in deeply nested method chains may be over-approximated.
