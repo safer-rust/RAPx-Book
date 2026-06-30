@@ -472,9 +472,43 @@ The detector iterates increasing `postfix_repeat` values from 1 to 16. At each l
 
 **Category 1 vs Category 2 violations**:
 
-- **Category 1 (static)**: The off-by-one is detectable regardless of unrolling depth. For example, `ptr.add(i + 1)` with guard `i < len` — the SMT can symbolically reason that `i + 1` may exceed `len` even with a single loop body execution. These are caught in the initial pass.
+- **Category 1 (static)**: The off-by-one is detectable regardless of unrolling depth. For example, `ptr.wrapping_add(i + 1)` with guard `i < data.len()` — the SMT can symbolically reason that `i + 1` may exceed `len` even with a single loop body execution. These are caught in the initial pass. The canonical example is `inbound_unsound_6`:
 
-- **Category 2 (diverging)**: The violation only manifests at deeper iterations. For example, `ptr.wrapping_add(i + 1)` with `len >= 10` and `i < len` — at `i=9`, the check needs `len >= 11`, but the initial pass only explores up to one iteration (where `i < 1` → vacuous). The auto-detector progressively unrolls until it reaches `repeat=9` where the 10th iteration reveals the off-by-one.
+  ```rust
+  #[rapx::verify]
+  pub fn unsound_scc_off_by_one(data: &[u32]) {
+      let ptr = data.as_ptr();
+      let mut i = 0usize;
+      while i < data.len() {
+          let current = ptr.wrapping_add(i + 1);
+          unsafe { require_scc_inbound(current); }
+          i += 1;
+      }
+  }
+  ```
+
+  Here `data.len()` is the direct slice length. The SMT models `i < len` and the offset `i + 1`, detecting that `i+1 < len` does not logically follow from `i < len` when `i == len - 1`. The violation is caught immediately — no deep unrolling required.
+
+- **Category 2 (diverging)**: The violation only manifests at deeper iterations because an early-return guard anchors a minimum length. The canonical example is `inbound_unsound_7`:
+
+  ```rust
+  #[rapx::verify]
+  pub fn unsound_len_guard_off_by_one(data: &[u32]) {
+      let len = data.len();
+      if len < 10 { return; }        // anchors len >= 10
+      let ptr = data.as_ptr();
+      let mut i = 0usize;
+      while i < len {
+          let current = ptr.wrapping_add(i + 1);
+          unsafe { require_scc_inbound(current); }
+          i += 1;
+      }
+  }
+  ```
+
+  At `postfix_repeat=0` (1 body execution): the path constrains `len == 1` via the loop exit, contradicting `len >= 10` from the if-check. This makes the path condition **unsatisfiable** → the SMT vacuously proves InBound (an unsatisfiable antecedent implies any consequent). All InBound Proved → the auto-detector triggers.
+
+  At `postfix_repeat=9` (10 body executions): the path has `i=9` entering the 10th iteration. The InBound check for `ptr.wrapping_add(10)` requires `10 < len` (i.e., `len >= 11`). But only `len >= 10` is known from the early-return guard. The SMT cannot prove the tighter bound → **Unknown → UNSOUND detected**.
 
 This mechanism is implemented in `VerifyRun::run()` ([`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs)) at lines 653-724.
 
