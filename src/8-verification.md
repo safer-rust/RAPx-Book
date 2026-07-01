@@ -153,6 +153,8 @@ VerifyTargetCollector::visit_fn(fn_kind, def_id)
   │     - For each callee DefId:
   │        a. get_contract_from_annotation: parse #[rapx::requires] from source
   │        b. If not found: get_contract_from_entry: load from std-contracts.json
+  │        c. If still not found: resolve_chain_contracts: follow call chain
+  │           to inherited contracts (max depth 3)
   │
   ├─ 5. Build struct invariants (if applicable)
   │     - Parse #[rapx::invariant] annotations on the struct
@@ -162,13 +164,15 @@ VerifyTargetCollector::visit_fn(fn_kind, def_id)
 
 ### 8.3.2 Contract Resolution
 
-Contracts are resolved through a two-tier system:
+Contracts are resolved through a three-tier system:
 
 1. **Annotation-based**: `get_contract_from_annotation()` parses `#[rapx::requires(...)]` attributes from the callee's source code, constructing `Property` instances via `Property::new()`. This is the primary mechanism for user-defined unsafe functions.
 
 2. **JSON fallback**: For standard library functions (no annotations in upstream code), `get_contract_from_entry()` builds properties from the bundled `std-contracts.json` database, normalizing argument tokens (`arg:N`, `const:N`, `ty:T`) into Rust expression syntax.
 
-The resolution order is: annotations first, then JSON. If neither provides a contract, the callee is skipped (no properties to verify). This means **unannotated third-party unsafe functions are not verified** — you must either annotate them or add entries to a custom contracts database.
+3. **Call-chain inheritance**: When an unsafe callee has no contracts of its own, the verifier scans its MIR body for the unsafe functions it calls. If any of those have contracts, they are inherited. This follows the chain recursively (max depth 3) — e.g., `A → B → C → D` where B and C lack annotations but D has contracts, the verifier traces through to D and uses its contracts to verify the call to B. Results are cached to avoid recomputation.
+
+The resolution order is: annotations → JSON → call-chain inheritance. If all three fail, the callee's contracts are set to `Unknown` — meaning no safety properties can be verified for this callsite.
 
 ### 8.3.3 std-contracts.json Format
 
