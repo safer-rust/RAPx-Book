@@ -207,17 +207,33 @@ Safety properties are defined in [`contract.rs`](https://github.com/safer-rust/R
 |----------|-----------|-------------|
 | `ValidPtr` | `(target, Ty, count)` | Pointer is valid for reads/writes of the given type and count |
 | `Align` | `(target, Ty)` | Pointer satisfies the alignment of the given type |
-| `InBound` | `(target, Ty, count)` | Pointer plus `count * size_of(Ty)` stays within the allocation |
+| `InBound` | `(target, Ty, count)` or `(IndexAccess)` | Pointer offset/index stays within the allocation bounds |
 | `Init` | `(target, Ty, count)` | Memory is initialized for the given type and count |
 | `NonNull` | `(target)` | Pointer is not null |
-| `Allocated` | `(target, Ty, count)` | Memory is allocated for the given type and count |
+| `Allocated` | `(target, Ty, count)` or `(target)` | Memory is allocated for the given type and count |
 | `Typed` | `(target, Ty)` | Memory holds a valid value of the given type |
-| `ValidNum` | `(predicates)` | Numeric constraints (e.g., `index < len`, `offset <= cap`) |
+| `ValidNum` | `(predicates)` or `(predicate)` | Numeric constraints (e.g., `index < len`, `offset <= cap`, `n != 0`) |
 | `Owning` | `(target)` | The value has unique ownership |
-| `Deref` | `(target)` | The value is safe to dereference |
+| `Deref` | `(target)` or `(target, Ty, count)` | The pointer can be safely dereferenced; composite of `Allocated` + `InBound` |
 | `Ptr2Ref` | `(target)` | A raw pointer can be safely converted to a reference |
-| `Layout` | `(target)` | A memory layout value matches the given size and alignment |
-| `Size` | `(target, size_expr)` | A value matches the expected size |
+| `Layout` | `(target)` | A memory layout value (e.g., `Layout`) matches a prior allocation's size and alignment |
+| `Size` | `(target)` | The value has valid DST (dynamically-sized type) metadata |
+| `NonSize` | *(none)* | The type is `Sized` (not a DST), required for pointer offset arithmetic with generic types |
+| `NonOverlap` | `(targets...)` | The specified memory ranges do not overlap |
+| `NoPadding` | `(target)` | The type has no padding bytes |
+| `ValidString` | `(target)` | String/slice data is valid UTF-8 |
+| `ValidCStr` | `(target)` | C string is valid (null-terminated, no interior nulls) |
+| `ValidSlice` | `(target)` or `(target, Ty)` | A slice reference (pointer + length) is valid |
+| `Unwrap` | `(target)` | The `Option`/`Result` is in the expected variant (e.g., `Some` or `Ok`) |
+| `ValidTransmute` | `(Src, Dst)` | Transmuting from type `Src` to type `Dst` is safe |
+| `Alias` | `(target)` | No other live pointer aliases this memory (exclusive access) |
+| `Alive` | `(target)` | The allocation is still live (not freed) |
+| `Pinned` | `(target)` | The target is pinned (its memory address will not change) |
+| `NonVolatile` | `(target)` | Memory is not volatile / not externally modified |
+| `Opened` | `(target)` | An OS resource (e.g., file descriptor) is valid and open |
+| `Trait` | `(target)` | Trait object safety contract |
+| `Unreachable` | *(none)* | The code path is unreachable |
+| `Null` | `(target)` | The pointer may be null (safe for operations like `as_ref` that handle null) |
 | `Unknown` | `(tag)` | A contract tag not yet supported by the verifier |
 
 ### 8.4.2 When Each Property Applies
@@ -229,13 +245,22 @@ Different unsafe operations require different combinations of properties:
 | `ptr::read(ptr)` | `ValidPtr(ptr, T, 1)`, `Align(ptr, T)`, `Typed(ptr, T)` |
 | `ptr::write(ptr, val)` | `ValidPtr(ptr, T, 1)`, `Align(ptr, T)` |
 | `ptr::copy(src, dst, count)` | `ValidPtr(src, T, count)`, `Align(src, T)`, `ValidPtr(dst, T, count)`, `Align(dst, T)` |
-| `ptr::copy_nonoverlapping(src, dst, count)` | Same as `ptr::copy`, plus `InBound` for both pointers |
+| `ptr::copy_nonoverlapping(src, dst, count)` | Same as `ptr::copy`, plus `NonOverlap(src, dst)` |
 | `*raw_ptr` (read) | `ValidPtr(ptr, T, 1)`, `Align(ptr, T)`, `Typed(ptr, T)` |
 | `*raw_ptr = val` (write) | `ValidPtr(ptr, T, 1)`, `Align(ptr, T)` |
 | `NonNull::new_unchecked(ptr)` | `NonNull(ptr)` |
 | `slice::from_raw_parts(ptr, len)` | `ValidPtr(ptr, T, len)`, `Align(ptr, T)` |
 | `Vec::from_raw_parts(ptr, len, cap)` | `ValidPtr(ptr, T, cap)`, `Align(ptr, T)`, `Allocated(ptr, T, cap)` |
 | `Box::from_raw(ptr)` | `ValidPtr(ptr, T, 1)`, `Align(ptr, T)`, `Allocated(ptr, T, 1)` |
+| `str::from_utf8_unchecked(v)` | `ValidString(v)` — the byte slice must be valid UTF-8 |
+| `CStr::from_ptr(ptr)` | `ValidCStr(ptr)`, `ValidPtr(ptr, c_char, 1)`, `NonNull(ptr)` |
+| `Pin::new_unchecked(ptr)` | `Pinned(ptr)` — the pointee must not be moved |
+| `MaybeUninit::assume_init()` | `Init(self, T, 1)` — the memory must be initialized |
+| `transmute::<Src, Dst>(src)` | `ValidTransmute(Src, Dst)` — bitwise reinterpretation must be valid |
+| `ptr::add(ptr, count)` / `ptr::offset` | `InBound(ptr, T, count)`, `NonNull(ptr)`, `Align(ptr, T)` |
+| GlobalAlloc/Allocator methods | `Allocated(ptr, u8, layout.size())`, `Layout(layout)` — memory must match the given layout |
+| `std::os::unix::io::from_raw_fd(fd)` | `Opened(fd)` — the file descriptor must be valid and open |
+| `hint::unreachable_unchecked()` | `Unreachable` — the code path must actually be unreachable |
 
 ### 8.4.3 Property Arguments
 
@@ -564,6 +589,13 @@ The `SmtChecker` ([`smt_check/`](https://github.com/safer-rust/RAPx/tree/main/ra
 | [`non_null.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/non_null.rs) | Pointer non-nullness |
 | [`allocated.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/allocated.rs) | Memory allocation tracking |
 | [`valid_num.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/valid_num.rs) | Numeric range constraints |
+| [`deref.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/deref.rs) | Composite: `Allocated` + `InBound` for dereference safety |
+| [`non_overlap.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/non_overlap.rs) | Memory region non-overlap constraints |
+| [`typed.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/typed.rs) | Memory holds a valid bit-pattern for the type |
+| [`alias.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/alias.rs) | No other live pointer aliases the memory |
+| [`alive.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/smt_check/alive.rs) | Allocation liveness tracking |
+
+Properties without dedicated SMT modules (e.g., `ValidString`, `ValidCStr`, `Pinned`, `Unwrap`, `ValidTransmute`, `NonSize`, `Null`, `Size`, `NoPadding`, `Owning`, `Layout`, `Ptr2Ref`, `Opened`, `Trait`, `NonVolatile`, `Unreachable`) produce `CheckResult::Unknown` and do not contribute to soundness verdicts.
 
 The checker returns a `CheckResult::Proved` if the SMT solver confirms the property holds under all modeled assumptions, or `CheckResult::Unproved` otherwise.
 
@@ -912,7 +944,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 - **The SMT encoding approximates** numeric constraints and may produce false positives for complex arithmetic. Specifically, non-linear arithmetic (e.g., multiplication of two variables) is not well-supported by the underlying SMT theories and may result in `Unproved` results even when the property holds.
 - **Struct invariant verification** for method sequences exceeding the maximum chain depth is not explored, and field mutations in deeply nested method chains may be over-approximated.
 - **Safety contracts for standard library functions** are maintained manually in [`std-contracts.json`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/attribute/assets/std-contracts.json) and may be incomplete. Functions not covered by the database are silently skipped.
-- **The verifier supports a fixed set** of `PropertyKind` variants; unknown contract tags are classified as `Unknown` and produce `CheckResult::Unknown`.
+- **The verifier supports 30 `PropertyKind` variants** (see Section 8.4.1). Of these, 12 have dedicated SMT solver modules (see Section 8.5.4); the remaining produce `CheckResult::Unknown` and do not block soundness. Contract tags not matching any recognized variant are classified as `Unknown` and silently skipped.
 - **Concurrent code** (e.g., `Arc`, `Mutex`, atomics) is not modeled. The verification assumes single-threaded execution and does not account for data races or memory ordering.
 - **Inline assembly** (`asm!` blocks) are not analyzed. Functions containing inline assembly are conservatively treated as having unknown effects.
 
