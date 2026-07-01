@@ -479,11 +479,11 @@ for repeat in 0, 1, 2, ...:
 
 **Convergence pattern 1 — Unproven / Unknown found:** Deeper unrolling reveals an InBound (or other) property that is `Unproved` or `Unknown`. The auto-expansion terminates immediately: discovering the violation is sufficient, further unrolling is unnecessary.
 
-**Convergence pattern 2 — Diverging toward violation:** Deeper unrolling reveals additional path instances where previously `Proved` properties become `Unproved` or `Unknown` — for example, an InBound check that passes at shallow depth but fails as the loop counter approaches the bound (see examples below). The auto-expansion terminates the moment any property is unprovable: discovering the violation is sufficient, and deeper unrolling that would produce even more violations is unnecessary.
+**Convergence pattern 2 — State converged:** The Proven set at the current level matches one from a previous level — the state has stabilized and further unrolling cannot produce new information. The verifier stops.
 
-**Convergence pattern 3 — Bounded quiescence:** The detector counts consecutive levels where all InBound checks remain `Proved` (or produce only SMT precision-loss noise). After 10 such consecutive levels, it concludes that further unrolling is unlikely to surface new violations and stops. This is a simple heuristic in lieu of tracking the full set of proven properties across levels — the counter effectively bounds the search depth when the state appears to have stabilized.
+**Convergence pattern 3 — Oscillation / bounded cycle:** The detector records the set of Proved `(checkpoint, property)` pairs at each level. If the Proven set at level N matches level N-2 and level N-1 matches level N-3 — an alternation between two states — the verifier detects the cycle and stops.
 
-**InBound examples for pattern 2 (diverging toward violation):**
+**InBound examples (diverging toward violation):**
 
 When an InBound property is `Proved` at `repeat=0` but the verifier detects that deeper unrolling may reveal violations, auto-expansion progressively probes deeper until convergence. Two categories of violation illustrate why convergence is necessary:
 
@@ -960,8 +960,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 
 ### 8.11.3 Future Work
 
-- **Deep matching support**: Extend path tracking through complex `match` statements. Supported: nested enum destructuring (`Some(Ok(v))`) via type-based variant count lookup, `switchInt` on dereferenced enum pointers (`*ptr`), and guard-clause comparison source tracking (infrastructure in place for relational constraint propagation). Remaining: guard clause relational constraint integration in verification pipeline.
-- **Convergence state tracking**: The current InBound loop-depth detector uses a simple `empty_streak` heuristic (stop after 10 consecutive clean levels). Replace with full provenance-set tracking: record the set of `(checkpoint, property)` that are Proved at each unroll level, detect true convergence (same set as a prior level) and oscillation (alternating between a fixed set of states). This would terminate auto-expansion earlier and more reliably than the current counter-based approach.
+- **Deep matching support**: Extend path tracking through complex `match` statements. Supported: nested enum destructuring (`Some(Ok(v))`), `switchInt` on dereferenced enum pointers (`*ptr`), and guard-clause comparison source tracking. Remaining: guard clause relational constraint integration in verification pipeline.
 - **Full inter-procedural verification**: Replace call summaries with MIR-level cross-function analysis for custom unsafe abstractions.
 - **Postcondition inference**: Automatically derive postconditions from function bodies so that callers of safe wrappers can benefit from the verifier's analysis results without manual annotation.
 - **Lifetime-aware pointer analysis**: Integrate borrow-checker information to more precisely model borrow lifetimes and stack-vs-heap allocation.
