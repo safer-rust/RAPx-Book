@@ -116,7 +116,7 @@ Output example:
 
 This is useful for understanding which contracts the verifier will attempt to prove before running the full (potentially time-consuming) verification.
 
-The `--postfix-repeat` flag controls how many extra SCC postfix repetitions are allowed during path enumeration (default 0, meaning each SCC postfix segment appears once; set to 1 for one extra repetition, etc.). The `VerifyRun` analysis automatically increments this value across multiple rounds (0, 1, 2, ...) when earlier rounds fail, up to a maximum of `MAX_REPEAT` (3). This means if a property cannot be proved with `repeat=0`, the verifier retries with `repeat=1`, `repeat=2`, and `repeat=3` before giving a final `Unproved` verdict. Each round explores more loop unrollings, which may reveal additional facts needed for the proof.
+The `--postfix-repeat` flag controls how many extra SCC postfix repetitions are allowed during path enumeration. If not explicitly set, the verifier automatically expands `postfix_repeat` until convergence — deeper loop unrolling continues until no new information is gained. The auto-expansion terminates immediately when any property becomes `Unproved` or `Unknown`: once a violation is discovered, further unrolling serves no purpose. When explicitly set via `--postfix-repeat=N`, auto-expansion is disabled and the verifier uses exactly N repeat values. The full convergence mechanism is described in [8.5.1 Path Extraction](#851-path-extraction).
 
 ## 8.3 Verification Target Collection
 
@@ -433,46 +433,36 @@ Each leaf represents one verification path corresponding to a specific loop iter
 
 The `walk_all_prefixes` method (`PathTree`) provides an alternative enumeration strategy: instead of child-path expansion, it walks the tree and calls a callback at **every** occurrence of a target block (not just the first), continuing past the block into its children. Each callback receives the complete path prefix from the root, including all intermediate loop headers. This is useful when the child-path expansion may omit constraints from the last partial iteration's loop header.
 
-#### Convergence-Based Deep Loop Unrolling (Auto-Detector)
+#### Postfix Repeat Convergence
 
-After the initial verification pass (`postfix_repeat=0`) where all InBound properties are Proved, the verifier triggers an **auto-detector** that tries progressively deeper loop unrolling to catch off-by-one bugs:
+When `--postfix-repeat` is not explicitly set, the verifier automatically expands the postfix repeat value, exploring progressively deeper loop unrollings. The auto-expansion terminates under one of three convergence patterns:
 
 ```
-VerifyRun::run()
-  ├─ Phase 1: Initial verification (postfix_repeat=0)
-  │     all InBound Proved → trigger auto-detector
-  │
-  └─ Phase 1.5: InBound loop-depth detector
-        for repeat in 1..=16:
-          driver = VerifyDriver::new_with_repeat(repeat)
-          run verification with deeper SCC unrolling
-          collect InBound results
-          apply three stopping criteria
+for repeat in 0, 1, 2, ...:
+  verify with postfix_repeat = repeat
+  compare results with prior repeat
+  apply convergence check → terminate or continue
 ```
-
-The detector iterates increasing `postfix_repeat` values from 1 to 16. At each level, the path enumerator generates paths with proportionally more loop body repetitions:
 
 | `postfix_repeat` | Max loop iterations in path |
 |-----------------|---------------------------|
-| 0 (initial) | 1 |
+| 0 | 1 |
 | 1 | 2 |
 | 2 | 3 |
 | ... | ... |
-| 9 | 10 |
+| k | k + 1 |
 
-**Three stopping criteria** govern the unrolling process:
+**Convergence pattern 1 — No change:** Deeper unrolling produces the same results as a single expansion — the state is fully determined at shallow depth, and further unrolling cannot change any verdict. The verifier terminates early.
 
-1. **Unproven InBound found**: If any InBound property is unproved at the current depth (excluding "path has precision loss" and "could not connect" Unknowns — these are SMT precision artifacts, not genuine violations), the detector declares UNSOUND and propagates the deep-path results into the final report.
+**Convergence pattern 2 — Diverging toward violation:** Deeper unrolling reveals additional path instances where previously `Proved` properties become `Unproved` or `Unknown` — for example, an InBound check that passes at shallow depth but fails as the loop counter approaches the bound (see examples below). The auto-expansion terminates the moment any property is unprovable: discovering the violation is sufficient, and deeper unrolling that would produce even more violations is unnecessary.
 
-2. **Empty streak ≥ 10**: If 10 consecutive unrolling levels all produce Proved results without reaching any unproven state, the detector concludes that further unrolling is unlikely to reveal new violations and stops.
+**Convergence pattern 3 — Oscillating / bounded cycle:** Deeper unrolling alternates between a fixed set of states without reaching new conclusions (e.g., results at `repeat=3` match `repeat=1`, `repeat=4` matches `repeat=2`, repeating). The verifier detects the cycle and stops.
 
-3. **Panic caught**: If a deeper unrolling level triggers a rustc ICE or internal error, the detector gracefully stops.
+**InBound examples for pattern 2 (diverging toward violation):**
 
-**Why convergence matters**: Loop-depth detection exploits the observation that many InBound violations are "diverging" — they are Proved at shallow depths but become Unproved at deeper depths as the loop counter approaches the bound. The detector progressively probes deeper until it either finds the violation or the result stabilizes (all Proved for 10 consecutive levels), ensuring the verifier doesn't waste time on indefinite unrolling.
+When an InBound property is `Proved` at `repeat=0` but the verifier detects that deeper unrolling may reveal violations, auto-expansion progressively probes deeper until convergence. Two categories of violation illustrate why convergence is necessary:
 
-**Category 1 vs Category 2 violations**:
-
-- **Category 1 (static)**: The off-by-one is detectable regardless of unrolling depth. For example, `ptr.wrapping_add(i + 1)` with guard `i < data.len()` — the SMT can symbolically reason that `i + 1` may exceed `len` even with a single loop body execution. These are caught in the initial pass. The canonical example is `inbound_unsound_6`:
+- **Category 1 (static)**: The off-by-one is detectable regardless of unrolling depth. For example, `ptr.wrapping_add(i + 1)` with guard `i < data.len()` — the SMT can symbolically reason that `i + 1` may exceed `len` even with a single loop body execution. These are caught in the initial pass (`repeat=0`), not by convergence. The canonical example is `inbound_unsound_6`:
 
   ```rust
   #[rapx::verify]
@@ -506,11 +496,11 @@ The detector iterates increasing `postfix_repeat` values from 1 to 16. At each l
   }
   ```
 
-  At `postfix_repeat=0` (1 body execution): the path constrains `len == 1` via the loop exit, contradicting `len >= 10` from the if-check. This makes the path condition **unsatisfiable** → the SMT vacuously proves InBound (an unsatisfiable antecedent implies any consequent). All InBound Proved → the auto-detector triggers.
+  At `repeat=0` (1 body execution): the path constrains `len == 1` via the loop exit, contradicting `len >= 10` from the if-check. This makes the path condition **unsatisfiable** → the SMT vacuously proves InBound. All InBound Proved → auto-expansion continues.
 
-  At `postfix_repeat=9` (10 body executions): the path has `i=9` entering the 10th iteration. The InBound check for `ptr.wrapping_add(10)` requires `10 < len` (i.e., `len >= 11`). But only `len >= 10` is known from the early-return guard. The SMT cannot prove the tighter bound → **Unknown → UNSOUND detected**.
+  At `repeat=9` (10 body executions): the path has `i=9` entering the 10th iteration. The InBound check for `ptr.wrapping_add(10)` requires `10 < len` (i.e., `len >= 11`). But only `len >= 10` is known from the early-return guard. The SMT cannot prove the tighter bound → **Unproved → auto-expansion terminates, UNSOUND reported**.
 
-This mechanism is implemented in `VerifyRun::run()` ([`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs)) at lines 653-724.
+The postfix-repeat convergence is implemented in `VerifyRun::run()` ([`driver.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/driver.rs)) at lines 653-724.
 
 ### 8.5.2 Backward Visit
 
@@ -917,7 +907,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 ### 8.11.1 Current Limitations
 
 - **Path enumeration is capped** at 1024 paths per callsite. Functions with very complex control flow (e.g., deeply nested loops with many conditional branches) may exceed this limit, in which case the verifier processes the first 1024 paths and reports a warning.
-- **Loop-depth auto-detection** supports up to 16 iterations (MAX_LOOP_INBOUND_UNROLL). Off-by-one bugs requiring more than 16 loop iterations to manifest will not be detected by the auto-detector. Additionally, the detector uses a 10-level convergence streak to avoid indefinite unrolling.
+- **Postfix repeat convergence** may not exhaustively unroll deeply nested SCCs within a practical bound. Off-by-one bugs requiring more than 16 loop iterations to manifest may escape detection if convergence terminates earlier (e.g., via pattern 1 or 3).
 - **Inter-procedural analysis is limited** to pre-defined call summaries; full cross-function MIR-level verification is not supported. This means custom unsafe functions that call other custom unsafe functions require either explicit contracts on both or manual entry in the call summary database.
 - **The SMT encoding approximates** numeric constraints and may produce false positives for complex arithmetic. Specifically, non-linear arithmetic (e.g., multiplication of two variables) is not well-supported by the underlying SMT theories and may result in `Unproved` results even when the property holds.
 - **Struct invariant verification** for method sequences exceeding the maximum chain depth is not explored, and field mutations in deeply nested method chains may be over-approximated.
