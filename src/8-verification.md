@@ -477,11 +477,11 @@ for repeat in 0, 1, 2, ...:
 | ... | ... |
 | k | k + 1 |
 
-**Convergence pattern 1 — No change:** Deeper unrolling produces the same results as a single expansion — the state is fully determined at shallow depth, and further unrolling cannot change any verdict. The verifier terminates early.
+**Convergence pattern 1 — Unproven / Unknown found:** Deeper unrolling reveals an InBound (or other) property that is `Unproved` or `Unknown`. The auto-expansion terminates immediately: discovering the violation is sufficient, further unrolling is unnecessary.
 
 **Convergence pattern 2 — Diverging toward violation:** Deeper unrolling reveals additional path instances where previously `Proved` properties become `Unproved` or `Unknown` — for example, an InBound check that passes at shallow depth but fails as the loop counter approaches the bound (see examples below). The auto-expansion terminates the moment any property is unprovable: discovering the violation is sufficient, and deeper unrolling that would produce even more violations is unnecessary.
 
-**Convergence pattern 3 — Oscillating / bounded cycle:** Deeper unrolling alternates between a fixed set of states without reaching new conclusions (e.g., results at `repeat=3` match `repeat=1`, `repeat=4` matches `repeat=2`, repeating). The verifier detects the cycle and stops.
+**Convergence pattern 3 — Bounded quiescence:** The detector counts consecutive levels where all InBound checks remain `Proved`. After 10 consecutive clean levels (`empty_streak >= 10`), it assumes no further violations will appear and stops. This handles both stable states (fully determined at shallow depth) and oscillating patterns (alternating states that never produce violations).
 
 **InBound examples for pattern 2 (diverging toward violation):**
 
