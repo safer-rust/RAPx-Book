@@ -960,7 +960,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 
 ### 8.11.3 Future Work
 
-- **Deep matching support**: Extend path tracking through complex `match` statements to handle patterns with guard clauses and nested destructuring.
+- **Deep matching support**: Extend path tracking through complex `match` statements with guard clauses and pointer-deref enum matching. Basic support for nested enum destructuring (`Some(Ok(v))`) is available via type-based variant count lookup; remaining work includes guard clause relational tracking and `switchInt` on dereferenced enum pointers.
 - **Full inter-procedural verification**: Replace call summaries with MIR-level cross-function analysis for custom unsafe abstractions.
 - **Postcondition inference**: Automatically derive postconditions from function bodies so that callers of safe wrappers can benefit from the verifier's analysis results without manual annotation.
 - **Lifetime-aware pointer analysis**: Integrate borrow-checker information to more precisely model borrow lifetimes and stack-vs-heap allocation.
