@@ -943,7 +943,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 - **Inter-procedural analysis is limited** to pre-defined call summaries; full cross-function MIR-level verification is not supported. This means custom unsafe functions that call other custom unsafe functions require either explicit contracts on both or manual entry in the call summary database.
 - **The SMT encoding approximates** numeric constraints and may produce false positives for complex arithmetic. Specifically, non-linear arithmetic (e.g., multiplication of two variables) is not well-supported by the underlying SMT theories and may result in `Unproved` results even when the property holds.
 - **Struct invariant verification** for method sequences exceeding the maximum chain depth is not explored, and field mutations in deeply nested method chains may be over-approximated.
-- **Safety contracts for standard library functions** are maintained manually in [`std-contracts.json`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/attribute/assets/std-contracts.json) and may be incomplete. Functions not covered by the database are silently skipped.
+- **Safety contracts for standard library functions** are maintained manually in [`std-contracts.json`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/verify/attribute/assets/std-contracts.json). The database covers 313 functions with 737 contract entries across 30 property kinds. Functions not covered by the database are silently skipped.
 - **The verifier supports 30 `PropertyKind` variants** (see Section 8.4.1). Of these, 12 have dedicated SMT solver modules (see Section 8.5.4); the remaining produce `CheckResult::Unknown` and do not block soundness. Contract tags not matching any recognized variant are classified as `Unknown` and silently skipped.
 - **Concurrent code** (e.g., `Arc`, `Mutex`, atomics) is not modeled. The verification assumes single-threaded execution and does not account for data races or memory ordering.
 - **Inline assembly** (`asm!` blocks) are not analyzed. Functions containing inline assembly are conservatively treated as having unknown effects.
@@ -960,7 +960,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 
 ### 8.11.3 Future Work
 
-- **Deep matching support**: Extend path tracking through complex `match` statements with guard clauses and pointer-deref enum matching. Basic support for nested enum destructuring (`Some(Ok(v))`) is available via type-based variant count lookup; remaining work includes guard clause relational tracking and `switchInt` on dereferenced enum pointers.
+- **Deep matching support**: Extend path tracking through complex `match` statements. Supported: nested enum destructuring (`Some(Ok(v))`) via type-based variant count lookup, `switchInt` on dereferenced enum pointers (`*ptr`), and guard-clause comparison source tracking (infrastructure in place for relational constraint propagation). Remaining: guard clause relational constraint integration in verification pipeline.
 - **Full inter-procedural verification**: Replace call summaries with MIR-level cross-function analysis for custom unsafe abstractions.
 - **Postcondition inference**: Automatically derive postconditions from function bodies so that callers of safe wrappers can benefit from the verifier's analysis results without manual annotation.
 - **Lifetime-aware pointer analysis**: Integrate borrow-checker information to more precisely model borrow lifetimes and stack-vs-heap allocation.
