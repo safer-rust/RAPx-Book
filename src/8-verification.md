@@ -481,7 +481,7 @@ for repeat in 0, 1, 2, ...:
 
 **Convergence pattern 2 — Diverging toward violation:** Deeper unrolling reveals additional path instances where previously `Proved` properties become `Unproved` or `Unknown` — for example, an InBound check that passes at shallow depth but fails as the loop counter approaches the bound (see examples below). The auto-expansion terminates the moment any property is unprovable: discovering the violation is sufficient, and deeper unrolling that would produce even more violations is unnecessary.
 
-**Convergence pattern 3 — Bounded quiescence:** The detector counts consecutive levels where all InBound checks remain `Proved`. After 10 consecutive clean levels (`empty_streak >= 10`), it assumes no further violations will appear and stops. This handles both stable states (fully determined at shallow depth) and oscillating patterns (alternating states that never produce violations).
+**Convergence pattern 3 — Bounded quiescence:** The detector counts consecutive levels where all InBound checks remain `Proved` (or produce only SMT precision-loss noise). After 10 such consecutive levels, it concludes that further unrolling is unlikely to surface new violations and stops. This is a simple heuristic in lieu of tracking the full set of proven properties across levels — the counter effectively bounds the search depth when the state appears to have stabilized.
 
 **InBound examples for pattern 2 (diverging toward violation):**
 
