@@ -961,6 +961,7 @@ The report reveals that on the `cond=false` path, no `ValidNum(index < len)` con
 ### 8.11.3 Future Work
 
 - **Deep matching support**: Extend path tracking through complex `match` statements. Supported: nested enum destructuring (`Some(Ok(v))`) via type-based variant count lookup, `switchInt` on dereferenced enum pointers (`*ptr`), and guard-clause comparison source tracking (infrastructure in place for relational constraint propagation). Remaining: guard clause relational constraint integration in verification pipeline.
+- **Convergence state tracking**: The current InBound loop-depth detector uses a simple `empty_streak` heuristic (stop after 10 consecutive clean levels). Replace with full provenance-set tracking: record the set of `(checkpoint, property)` that are Proved at each unroll level, detect true convergence (same set as a prior level) and oscillation (alternating between a fixed set of states). This would terminate auto-expansion earlier and more reliably than the current counter-based approach.
 - **Full inter-procedural verification**: Replace call summaries with MIR-level cross-function analysis for custom unsafe abstractions.
 - **Postcondition inference**: Automatically derive postconditions from function bodies so that callers of safe wrappers can benefit from the verifier's analysis results without manual annotation.
 - **Lifetime-aware pointer analysis**: Integrate borrow-checker information to more precisely model borrow lifetimes and stack-vs-heap allocation.
