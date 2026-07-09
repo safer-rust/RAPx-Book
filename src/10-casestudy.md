@@ -43,7 +43,7 @@ pub unsafe fn copy_nonoverlapping<T>(src: *const T, dst: *mut T, count: usize) {
 ```shell
 cd library/core
 RUSTFLAGS="--cfg=rapx -Zcrate-attr=feature(register_tool) -Zcrate-attr=register_tool(rapx)" \
-  cargo rapx verify --crate core --module slice --prepare-targets
+  cargo rapx verify --module slice --prepare-targets
 ```
 
 Output:
@@ -57,8 +57,16 @@ Output:
 ```shell
 cd library/core
 RUSTFLAGS="--cfg=rapx -Zcrate-attr=feature(register_tool) -Zcrate-attr=register_tool(rapx)" \
-  cargo rapx verify --crate core --module slice --mode targeted
+  cargo rapx verify --module slice --mode targeted
 ```
+
+> **Note:** Commands must be run from `library/core`, not the `library` workspace
+> root. In the `library` workspace, `core` is only a *dependency* (the members
+> are `std`, `sysroot`, `coretests`, `alloctests`), and RAPx analyzes a crate
+> only when it is compiled as the primary package. Running from `library/core`
+> makes `core` local, so its `#[rapx::verify]` annotations are visible without
+> needing the `--crate core` filter.
+
 
 The RUSTFLAGS environment variable provides three things:
 
@@ -70,7 +78,7 @@ The RUSTFLAGS environment variable provides three things:
 
 ### CI Integration
 
-A GitHub Actions workflow (`.github/workflows/rapx.yml`) runs verification on every push and pull request, using the same RUSTFLAGS setup.
+A GitHub Actions workflow (`.github/workflows/rapx.yml`) runs verification on every push and pull request, using the same RUSTFLAGS setup. It pins a specific RAPx commit via `RAPX_VERSION`, `cd`s into `library/core`, and invokes `cargo rapx verify --module slice --mode targeted`.
 
 ### Code Reference
 
