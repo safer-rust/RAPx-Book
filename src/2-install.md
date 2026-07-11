@@ -14,20 +14,22 @@ Three toolchain versions are supported:
 
 | Toolchain | Status | CI Job |
 |-----------|--------|--------|
+| `nightly` (latest) | Default / always up-to-date | `latest` |
 | `nightly-2026-04-03` | Pinned / tested | `asterinas` |
-| `nightly` (latest) | Always up-to-date | `latest` |
 | `nightly-2025-10-09` | Pinned / tested | `verify-std` |
 
-Install the recommended toolchain:
-
-```shell
-rustup toolchain install nightly-2026-04-03 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
-```
-
-If you prefer the latest nightly:
+Install the recommended (latest) toolchain:
 
 ```shell
 rustup toolchain install nightly --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
+```
+
+The `main` branch pins `nightly` in its `rust-toolchain.toml`, so RAPx tracks the
+latest nightly. If you need a specific pinned version instead (e.g. to match the
+`asterinas` or `verify-std` CI jobs), install it explicitly:
+
+```shell
+rustup toolchain install nightly-2026-04-03 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
 ```
 
 If you have multiple Rust versions, please ensure the correct version is set as default:
@@ -50,7 +52,7 @@ git clone https://github.com/safer-rust/RAPx.git
 You can combine the previous two steps into a single command:
 
 ```shell
-cargo +nightly-2026-04-03 install rapx --git https://github.com/safer-rust/RAPx.git
+cargo +nightly install rapx --git https://github.com/safer-rust/RAPx.git
 ```
 
 For macOS users, you may encounter compilation errors related to Z3 headers and libraries. There are two solutions:
