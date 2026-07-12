@@ -157,8 +157,11 @@ Usage: cargo rapx verify [OPTIONS]
 
 Options:
       --prepare-targets            identify #[rapx::verify] functions and list their safety contracts
-      --postfix-repeat <N>  number of extra SCC postfix repetitions during path enumeration (default 0)
+      --debug-contracts            print expanded contract assertions per target and exit (no verification)
+      --postfix-repeat <N>    number of extra SCC postfix repetitions during path enumeration (default 0)
       --mode <MODE>               verification mode: scan, targeted, invless (default scan)
+      --crate <CRATE>             filter verification targets to the named crate
+      --module <PATH>             filter verification targets to the named module path
   -h, --help                      Print help
 ```
 
