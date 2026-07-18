@@ -80,6 +80,41 @@ The RUSTFLAGS environment variable provides three things:
 
 A GitHub Actions workflow (`.github/workflows/rapx.yml`) runs verification on every push and pull request, using the same RUSTFLAGS setup. It pins a specific RAPx commit via `RAPX_VERSION`, `cd`s into `library/core`, and invokes `cargo rapx verify --module slice --mode targeted`.
 
+### Verification Results
+
+Running `cargo rapx verify --module slice --mode targeted` produces output grouped by function. Below is a typical result excerpt:
+
+```
+============================================================
+[rapx::verify] function: core::slice::<impl [T]>::swap
+============================================================
+  --- unsafe checkpoints ---
+      unsafe checkpoint: bb3 -> core::intrinsics::transmute_unchecked
+        path [0, 1, 2, 3]:
+          ValidPtr | Proved
+          Align | Proved
+      unsafe checkpoint: bb13 -> core::slice::get_unchecked_mut
+        path [0, 1, 5, 6, 7, 8, 9, 10, 13]:
+          InBound | Proved
+          NonOverlap | Proved
+  --- struct invariants ---
+      checkpoint bb14:
+        path [0, 1, 5, 6, 7, 8, 9, 10, 11, 12, 14]:
+          ValidPtr | Proved
+          Align | Proved
+  result: SOUND
+============================================================
+
+[rapx::verify] function: core::slice::<impl [T]>::get_unchecked_mut
+============================================================
+  --- unsafe checkpoints ---
+      unsafe checkpoint: bb2 -> core::ptr::mut_ptr::add
+        path [0, 1, 2]:
+          Align | Proved
+          InBound | Proved
+  result: SOUND
+```
+
 ### Code Reference
 
 - **Source:** [`safer-rust/rapx-verify-rust-std`](https://github.com/safer-rust/rapx-verify-rust-std)
