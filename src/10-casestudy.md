@@ -23,7 +23,7 @@ Following the same conditional pattern as Kani (`#[cfg_attr(kani, ...)]`) and Fl
 ```rust
 // Example from core/src/slice/mod.rs
 #[cfg_attr(rapx, rapx::verify)]
-#[cfg_attr(rapx, rapx::requires(InBound(index_access(self, a))))]
+#[cfg_attr(rapx, rapx::requires(InBound(self, a)))]
 pub fn swap(&mut self, a: usize, b: usize) { /* ... */ }
 ```
 
