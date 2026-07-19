@@ -6,7 +6,7 @@ This case study demonstrates how RAPx verifies safety contracts in the Rust stan
 
 ### Goal
 
-Prove that 30+ unsafe and safe functions in `library/core/src/slice/mod.rs` are free of undefined behavior by:
+Prove that all 37 `#[rapx::verify]`-annotated functions in `library/core/src/slice/mod.rs` are free of undefined behavior by:
 
 - Writing `#[rapx::requires(...)]` safety preconditions on unsafe callees
 - Adding `#[rapx::verify]` annotations to trigger verification
@@ -41,20 +41,6 @@ pub unsafe fn copy_nonoverlapping<T>(src: *const T, dst: *mut T, count: usize) {
 
 ### Commands
 
-**Prepare targets** (preview what will be verified without running full verification):
-
-```shell
-cd library/core
-RUSTFLAGS="--cfg=rapx -Zcrate-attr=feature(register_tool) -Zcrate-attr=register_tool(rapx)" \
-  cargo rapx verify --module slice --prepare-targets
-```
-
-Output:
-
-```
-[rapx::verify] total: 80 free function(s), 21 method(s), 9 struct(s), 0 trait(s)
-```
-
 **Run verification:**
 
 ```shell
@@ -85,16 +71,19 @@ A GitHub Actions workflow (`.github/workflows/rapx.yml`) runs verification on ev
 
 ### Verification Results
 
-Running `cargo rapx verify --module slice --mode targeted` produces output grouped by function, reporting proved safety contracts at each unsafe checkpoint. Below is a typical result excerpt:
+All 37 functions pass with `result: SOUND`. Below is the complete output for one representative target:
 
 ```
 ============================================================
-[rapx::verify] function: core::slice::<impl [T]>::get_unchecked_mut
+[rapx::verify] function: slice::<impl [T]>::get_unchecked_mut
 ============================================================
   --- unsafe checkpoints ---
-      unsafe checkpoint: bb2 -> core::ptr::mut_ptr::add
-        path [0, 1, 2]:
+      unsafe checkpoint: bb1 -> raw-ptr-deref
+        path [0, 1]:
+          NonNull | Proved
           Align | Proved
+      unsafe checkpoint: bb0 -> core::slice::index::SliceIndex::get_unchecked_mut
+        path [0]:
           InBound | Proved
   result: SOUND
 ```
