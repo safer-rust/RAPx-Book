@@ -23,8 +23,9 @@ Following the same conditional pattern as Kani (`#[cfg_attr(kani, ...)]`) and Fl
 ```rust
 // Example from core/src/slice/mod.rs
 #[cfg_attr(rapx, rapx::verify)]
-#[cfg_attr(rapx, rapx::requires(InBound(self, a)))]
-pub fn swap(&mut self, a: usize, b: usize) { /* ... */ }
+#[cfg_attr(rapx, rapx::requires(ValidNum(a, "[0,self.len())")))]
+#[cfg_attr(rapx, rapx::requires(ValidNum(b, "[0,self.len())")))]
+pub const unsafe fn swap_unchecked(&mut self, a: usize, b: usize) { /* ... */ }
 ```
 
 ```rust
@@ -33,6 +34,8 @@ pub fn swap(&mut self, a: usize, b: usize) { /* ... */ }
 #[cfg_attr(rapx, rapx::requires(Align(dst, T)))]
 #[cfg_attr(rapx, rapx::requires(ValidPtr(src, T, count)))]
 #[cfg_attr(rapx, rapx::requires(ValidPtr(dst, T, count)))]
+#[cfg_attr(rapx, rapx::requires(NonOverlap(dst, src, T, count)))]
+#[cfg_attr(rapx, rapx::requires(ValidNum(size_of(T) * count <= isize::MAX)))]
 pub unsafe fn copy_nonoverlapping<T>(src: *const T, dst: *mut T, count: usize) { /* ... */ }
 ```
 
@@ -82,29 +85,10 @@ A GitHub Actions workflow (`.github/workflows/rapx.yml`) runs verification on ev
 
 ### Verification Results
 
-Running `cargo rapx verify --module slice --mode targeted` produces output grouped by function. Below is a typical result excerpt:
+Running `cargo rapx verify --module slice --mode targeted` produces output grouped by function, reporting proved safety contracts at each unsafe checkpoint. Below is a typical result excerpt:
 
 ```
 ============================================================
-[rapx::verify] function: core::slice::<impl [T]>::swap
-============================================================
-  --- unsafe checkpoints ---
-      unsafe checkpoint: bb3 -> core::intrinsics::transmute_unchecked
-        path [0, 1, 2, 3]:
-          ValidPtr | Proved
-          Align | Proved
-      unsafe checkpoint: bb13 -> core::slice::get_unchecked_mut
-        path [0, 1, 5, 6, 7, 8, 9, 10, 13]:
-          InBound | Proved
-          NonOverlap | Proved
-  --- struct invariants ---
-      checkpoint bb14:
-        path [0, 1, 5, 6, 7, 8, 9, 10, 11, 12, 14]:
-          ValidPtr | Proved
-          Align | Proved
-  result: SOUND
-============================================================
-
 [rapx::verify] function: core::slice::<impl [T]>::get_unchecked_mut
 ============================================================
   --- unsafe checkpoints ---
