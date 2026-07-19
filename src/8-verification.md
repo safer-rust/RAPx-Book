@@ -7,5 +7,4 @@ Unsafe code enables low-level operations while circumventing Rust's safety guara
 - [8.1 Design Principles and Verification Modes](./8.1-overview.md) — the three assumptions, contract-based verification, and the `scan` / `targeted` / `invless` modes
 - [8.2 Verification Target Collection](./8.2-collection.md) — how targets are gathered and how contracts are resolved (annotation → JSON → call-chain)
 - [8.3 Safety Property Contracts](./8.3-contracts.md) — complete syntax reference: property kinds, argument grammar, `ValidNum` predicates, direct annotation syntax, and the JSON contract database format
-- [8.4 The Verification Pipeline](./8.4-pipeline.md) — path extraction, backward/forward visit, SMT check, call summaries, struct invariants, invless sequences, and raw-pointer dereference checks
-- [8.5 Report, Examples, and Limitations](./8.5-report.md) — output format, worked examples, and current limitations
+- [8.4 The Verification Pipeline](./8.4-pipeline.md) — a complete walkthrough of the verification pipeline using a linked-list case study: path extraction, backward slicing, forward verification, SMT check, and auto-repeat detectors
