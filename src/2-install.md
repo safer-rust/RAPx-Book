@@ -158,7 +158,9 @@ Usage: cargo rapx verify [OPTIONS]
 Options:
       --prepare-targets            identify #[rapx::verify] functions and list their safety contracts
       --debug-contracts            print expanded contract assertions per target and exit (no verification)
-      --postfix-repeat <N>    number of extra SCC postfix repetitions during path enumeration (default 0)
+      --postfix-repeat <N|auto>
+                              extra SCC postfix repetitions during path enumeration;
+                              `auto` is the default planner, a number fixes the repeat count
       --mode <MODE>               verification mode: scan, targeted, invless (default scan)
       --crate <CRATE>             filter verification targets to the named crate
       --module <PATH>             filter verification targets to the named module path
@@ -183,6 +185,5 @@ For `RAPX_RECURSIVE`:
 ```shell
 cargo uninstall rapx
 ```
-
 
 
