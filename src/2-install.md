@@ -168,7 +168,7 @@ Usage: cargo rapx opt
 
 ### `verify` command
 
-The `verify` command provides a contract-based verification pipeline for functions annotated with `#[rapx::verify]`. It uses path-sensitive backward/forward analysis and Z3-based SMT solving to prove safety properties. RAPx supports three verification modes (see [Chapter 8](./8-verification.md) for details).
+The `verify` command provides a contract-based verification pipeline for functions annotated with `#[rapx::verify]`. It uses path-sensitive backward/forward analysis and Z3-based SMT solving to prove safety properties. RAPx supports two verification modes (see [Chapter 8](./8-verification.md) for details).
 
 ```
 Usage: cargo rapx verify [OPTIONS]
@@ -179,7 +179,7 @@ Options:
       --postfix-repeat <N|auto>
                               extra SCC postfix repetitions during path enumeration;
                               `auto` is the default planner, a number fixes the repeat count
-      --mode <MODE>               verification mode: scan, targeted, invless (default scan)
+      --mode <MODE>               verification mode: scan, targeted (default scan)
       --crate <CRATE>             filter verification targets to the named crate
       --module <PATH>             filter verification targets to the named module path
   -h, --help                      Print help
@@ -188,7 +188,8 @@ Options:
 Verification modes:
 - `scan` — auto-detect: verify all functions with unsafe callees or struct invariants
 - `targeted` — only verify functions annotated with `#[rapx::verify]`
-- `invless` — like `scan` or `targeted` but skip struct invariant checks
+
+The `--skip-invariant` flag works with both modes to skip struct invariant checks and instead derive safety through constructor-mutator-method chains.
 
 The `--postfix-repeat` option controls loop unrolling depth:
 - `auto` (default) — automatic loop-depth detection for `InBound` and `Align` contracts
