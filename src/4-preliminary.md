@@ -198,17 +198,11 @@ Every RAPx analysis module implements the [`Analysis`] trait defined in [`rapx/s
 
 ```rust
 pub trait Analysis {
-    fn name(&self) -> &'static str;
     fn run(&mut self);
-    fn reset(&mut self);
 }
 ```
 
-- `name()`: Returns a human-readable name for logging.
-- `run()`: Executes the analysis. This is the main entry point called by the dispatcher.
-- `reset()`: Clears internal state for re-execution.
-
-Each analysis module defines a subtrait (e.g., `AliasAnalysis`, `DataflowAnalysis`, `RangeAnalysis`) that extends `Analysis` with query methods. A default implementation struct (e.g., `AliasAnalyzer`, `DataflowAnalyzer`) provides concrete algorithms.
+Each analysis module provides a concrete struct that implements `Analysis` and executes the analysis when `run()` is called. Specialized subtraits (e.g., `AliasAnalysis`, `DataflowAnalysis`, `RangeAnalysis`) extend `Analysis` with query methods for their specific results.
 
 ## Navigating the Compiler API
 
