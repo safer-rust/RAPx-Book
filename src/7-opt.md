@@ -142,8 +142,7 @@ Sub-modules:
 Detects unnecessary clone operations where a cloned value is only used immutably.
 
 Sub-modules:
-- **`used_as_immutable.rs`**: Detects cloned values that are only used in immutable contexts.
-- **`hash_key_cloning.rs`**: Specifically targets clones used as keys in hash-based collections where the original borrowed value could be used instead.
+- **`used_as_immutable.rs`**: Detects cloned values that are only used in immutable contexts (e.g., clones used as keys in hash-based collections where the original borrowed value could be used instead).
 
 **Note**: Developers need to manually verify whether removing the clone is semantically safe, as clone removal may change ownership semantics.
 
@@ -164,25 +163,3 @@ Detects suboptimal collection choices and suggests alternatives with better algo
 - **`participant.rs`**: Detects repeated collection traversal patterns.
 - **`slice_contains.rs`**: Detects `Vec::contains` on large vectors where `HashSet` would be faster.
 - **`vec_remove.rs`**: Detects `Vec::remove` in loops (O(n²) when `swap_remove` would be O(n)).
-
-### Iterator (`iterator/`)
-
-The iterator check (`next_iterator.rs`) detects manual `for` loops that can be expressed as iterator chains, enabling the compiler to apply loop fusion and other optimizations.
-
-```rust
-fn foo(data: &[i32]) -> Vec<i32> {
-    let mut result = Vec::new();
-    for &item in data {
-        result.push(item * 2);
-    }
-    result
-}
-```
-
-RAPx suggests using iterator combinators (`map`, `collect`):
-
-```rust
-fn foo(data: &[i32]) -> Vec<i32> {
-    data.iter().map(|&item| item * 2).collect()
-}
-```
