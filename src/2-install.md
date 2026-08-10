@@ -176,6 +176,8 @@ Usage: cargo rapx verify [OPTIONS]
 Options:
       --prepare-targets            identify #[rapx::verify] functions and list their safety contracts
       --debug-contracts            print contract resolutions per target and exit (no verification)
+      --skip-invariant             skip struct invariant checks, derive safety via
+                              constructor-mutator-method chains (works with both modes)
       --postfix-repeat <N|auto>
                               extra SCC postfix repetitions during path enumeration;
                               `auto` is the default planner, a number fixes the repeat count
