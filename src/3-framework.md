@@ -11,19 +11,15 @@ cargo toolname -more_arguments
 ```
 Cargo will automatically search the binaries named cargo-toolname from the paths. The following figure demonstrates the whole process before reaching our analysis program.
 ![Workflow of how cargo dispatches the analysis command to rapx.](figure/cargoflow.png)
-Note that we cannot directly invoke rapx in the first round but through cargo check because we need cargo to manage the project-level compilation and append detailed compilation options for launching rustc. However, we want to hook rustc execution and execute rapx instead for analysis. Therefore, we set [RUSTC_WRAPPER](https://doc.rust-lang.org/cargo/reference/environment-variables.html) with the value of cargo-rapx. In this way, cargo check will actually run `cargo-rapx rustc appended_options`. We then dispath the execution to rapx with appended options.
+Note that we cannot directly invoke rapx in the first round but through cargo check because we need cargo to manage the project-level compilation and append detailed compilation options for launching rustc. However, we want to hook rustc execution and execute rapx instead for analysis. Therefore, we set [RUSTC_WRAPPER](https://doc.rust-lang.org/cargo/reference/environment-variables.html) with the value of cargo-rapx. In this way, cargo check will actually run `cargo-rapx rustc appended_options`. We then dispatch the execution to rapx with appended options.
 
 ## Register Analysis Callbacks
 Supposing the purpose is to execute a function named my_analysis, developers should design a new struct and implement the [Callbacks Trait](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_driver/trait.Callbacks.html) for the struct.
 ```rust
 pub struct MyCallback {...}
 impl Callbacks for MyCallback {
-    fn after_analysis<'tcx>(&mut self, compiler: &Compiler, queries: &'tcx Queries<'tcx>) -> Compilation {
-        compiler.session().abort_if_errors();
-        queries.global_ctxt().unwrap().enter(
-            |tcx| my_analysis(tcx, *self) // the analysis function to execute after compilation.
-        );
-        compiler.session().abort_if_errors();
+    fn after_analysis<'tcx>(&mut self, _compiler: &Compiler, tcx: TyCtxt<'tcx>) -> Compilation {
+        my_analysis(tcx, *self) // the analysis function to execute after compilation.
         Compilation::Continue
     }
 }
