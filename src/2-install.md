@@ -15,7 +15,7 @@ Three toolchain versions are supported:
 | Toolchain | Status | CI Job |
 |-----------|--------|--------|
 | `nightly` (latest) | Default / always up-to-date | `latest` |
-| `nightly-2026-04-03` | Pinned / tested | `asterinas` |
+| `nightly-2026-07-21` | Pinned / tested | `asterinas` |
 | `nightly-2025-11-25` | Pinned / tested | `verify-std` |
 
 Install the recommended (latest) toolchain:
@@ -29,7 +29,7 @@ latest nightly. If you need a specific pinned version instead (e.g. to match the
 `asterinas` or `verify-std` CI jobs), install it explicitly:
 
 ```shell
-rustup toolchain install nightly-2026-04-03 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
+rustup toolchain install nightly-2026-07-21 --profile minimal --component rustc-dev,rust-src,llvm-tools-preview
 ```
 
 If you have multiple Rust versions, please ensure the correct version is set as default:
