@@ -10,7 +10,7 @@
   - [API-Dependency Analysis](./5.3-api.md)
   - [Call Graph Analysis](./5.4-callgraph.md)
   - [Data-Flow Analysis](./5.5-dataflow.md)
-  - [Owned Heap Analysis](./5.6-ownedheap.md)
+  - [Heap Ownership Analysis](./5.6-heapownership.md)
   - [Range Analysis](./5.7-range.md)
   - [Safety-Flow Analysis](./5.8-safetyflow.md)
 - [Check](./6-check.md)

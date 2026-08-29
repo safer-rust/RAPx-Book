@@ -121,7 +121,7 @@ Commands:
   safetyflowstd unsafety propagation graph on the standard library
   callgraph     callgraph generation
   dataflow      dataflow graphs
-  ownedheap     analyze heap-owning types
+  heapowner     analyze heap-owning types
   paths         path-sensitive CFG paths
   pathcond      path constraint extraction
   range         range analysis
