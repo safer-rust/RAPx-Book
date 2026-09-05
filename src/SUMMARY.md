@@ -25,3 +25,5 @@
 - [Utilities](./9-utilities.md)
   - [Logging](./9.1-log.md)
 - [Case Study](./10-casestudy.md)
+  - [Verifying `core::slice` Safety (Challenge 17)](./10.1-slice.md)
+  - [Asterinas](./10.2-asterinas.md)
