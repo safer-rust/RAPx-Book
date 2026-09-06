@@ -7,3 +7,4 @@ title = "Rust Analysis Platform"
 
 [output.html]
 mathjax-support = true
+additional-css = ["custom.css"]
