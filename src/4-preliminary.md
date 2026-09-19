@@ -261,7 +261,7 @@ RAPx depends on `#![feature(rustc_private)]` — it links against the Rust compi
 
 This has practical consequences:
 
-- **Pinned toolchain**: RAPx ships a `rust-toolchain.toml` specifying an exact nightly version (e.g., `nightly-2026-04-03`). Users must install this version.
+- **Pinned toolchain**: RAPx ships a `rust-toolchain.toml` specifying the `nightly` channel. Users must install this version.
 - **Breakage on upgrade**: Bumping the nightly version typically requires updating dozens of API calls across the codebase, as MIR statement/terminator variants, field names, and module paths shift.
 - **Conditional compilation**: The [`compat.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/compat.rs) module (`rapx/src/compat.rs`) centralizes version-gated re-exports. `build.rs` detects the rustc version at build time and sets `cfg` flags like `rapx_rustc_ge_193`, `rapx_rustc_ge_196`, `rapx_rustc_ge_198`, `rustc_spanned_at_root`, etc. Source files use these flags to adapt to API changes without duplicating version checks.
 
