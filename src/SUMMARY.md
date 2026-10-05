@@ -22,7 +22,7 @@
   - [Verification Target Collection](./8.2-collection.md)
   - [Safety Property Contracts](./8.3-contracts.md)
   - [The Verification Pipeline](./8.4-pipeline.md)
-  - [Formal Reasoning Rules](./8.5-formal-rules.md)
+  - [Verification Approach](./8.5-verification-approach.md)
 - [Utilities](./9-utilities.md)
   - [Logging](./9.1-log.md)
 - [Case Study](./10-casestudy.md)
