@@ -16,7 +16,7 @@ Three toolchain versions are supported:
 |-----------|--------|--------|
 | `nightly` (latest) | Default / always up-to-date | `latest` |
 | `nightly-2026-07-21` | Pinned / tested | `asterinas` |
-| `nightly-2026-02-05` | Pinned / tested | `verify-std` |
+| `nightly-2026-09-25` | Pinned / tested | `verify-std` |
 
 Install the recommended (latest) toolchain:
 
