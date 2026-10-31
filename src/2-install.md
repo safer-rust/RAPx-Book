@@ -176,8 +176,9 @@ Usage: cargo rapx verify [OPTIONS]
 Options:
       --prepare-targets            identify #[rapx::verify] functions and list their safety contracts
       --debug-contracts            print contract resolutions per target and exit (no verification)
-      --skip-invariant             skip struct invariant checks, derive safety via
+      --no-invariant-target        skip struct invariant checks, derive safety via
                               constructor-mutator-method chains (works with both modes)
+      --inline-ctor <MODE>        constructor inlining: true, false, default (default: default)
       --postfix-repeat <N|auto>
                               extra SCC postfix repetitions during path enumeration;
                               `auto` is the default planner, a number fixes the repeat count
@@ -191,7 +192,9 @@ Verification modes:
 - `scan` — auto-detect: verify all functions with unsafe callees or struct invariants
 - `targeted` — only verify functions annotated with `#[rapx::verify]`
 
-The `--skip-invariant` flag works with both modes to skip struct invariant checks and instead derive safety through constructor-mutator-method chains.
+The `--no-invariant-target` flag works with both modes to skip struct invariant checks and instead derive safety through constructor-mutator-method chains.
+
+`--inline-ctor` accepts `true`, `false`, or `default`. `true` inlines constructors with MIR. `false` never inlines constructors; a result without an invariant stays unknown. `default` (the default value) summarizes a constructor that directly returns a struct with a source or bundled JSON invariant and inlines it when no invariant is declared. With `--no-invariant-target`, `default` inlines constructors.
 
 The `--postfix-repeat` option controls loop unrolling depth:
 - `auto` (default) — automatic loop-depth detection for `InBound` and `Align` contracts
