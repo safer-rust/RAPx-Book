@@ -16,8 +16,8 @@ The following toolchains are used by RAPx and its integration projects:
 |-----------|--------|--------|
 | `nightly` (latest) | Default / always up-to-date | `latest` |
 | `nightly-2026-07-21` | Pinned / tested | `asterinas` |
-| `nightly-2026-09-25` | Pinned / tested | `verify-std` |
-| `nightly-2026-10-22` | Pinned by the current `rapx-verify-rust-std` source; locally tested | — |
+| `nightly-2026-09-25` | Used by the fork's older workflow | `rapx-verify-rust-std` |
+| `nightly-2026-10-22` | Pinned / tested by the current fork and RAPx | `verify-std` |
 
 Install the recommended (latest) toolchain:
 
