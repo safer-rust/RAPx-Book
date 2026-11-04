@@ -10,13 +10,14 @@ RAPx supports the following three platforms:
 
 RAPx requires a nightly Rust toolchain with three components: `rustc-dev`, `rust-src`, `llvm-tools-preview`.
 
-Three toolchain versions are supported:
+The following toolchains are used by RAPx and its integration projects:
 
 | Toolchain | Status | CI Job |
 |-----------|--------|--------|
 | `nightly` (latest) | Default / always up-to-date | `latest` |
 | `nightly-2026-07-21` | Pinned / tested | `asterinas` |
 | `nightly-2026-09-25` | Pinned / tested | `verify-std` |
+| `nightly-2026-10-22` | Pinned by the current `rapx-verify-rust-std` source; locally tested | — |
 
 Install the recommended (latest) toolchain:
 
