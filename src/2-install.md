@@ -16,8 +16,7 @@ The following toolchains are used by RAPx and its integration projects:
 |-----------|--------|--------|
 | `nightly` (latest) | Default / always up-to-date | `latest` |
 | `nightly-2026-07-21` | Pinned / tested | `asterinas` |
-| `nightly-2026-09-25` | Used by the fork's older workflow | `rapx-verify-rust-std` |
-| `nightly-2026-10-22` | Pinned / tested by the current fork and RAPx | `verify-std` |
+| `nightly-2026-11-12` | Pinned / tested by the std fork and RAPx | `verify-std` |
 
 Install the recommended (latest) toolchain:
 
@@ -42,6 +41,7 @@ rustup show
 ### Download the project
 ```shell
 git clone https://github.com/safer-rust/RAPx.git
+cd RAPx
 ```
 
 ### Build and install RAPx
@@ -169,7 +169,7 @@ Usage: cargo rapx opt
 
 ### `verify` command
 
-The `verify` command provides a contract-based verification pipeline for functions annotated with `#[rapx::verify]`. It uses path-sensitive backward/forward analysis and Z3-based SMT solving to prove safety properties. RAPx supports two verification modes (see [Chapter 8](./8-verification.md) for details).
+The `verify` command checks contract obligations using path-sensitive symbolic execution and Z3. By default it scans functions with unsafe calls or struct invariants; `--mode targeted` selects functions annotated with `#[rapx::verify]` (see [Chapter 8](./8-verification.md)).
 
 ```
 Usage: cargo rapx verify [OPTIONS]
@@ -177,15 +177,17 @@ Usage: cargo rapx verify [OPTIONS]
 Options:
       --prepare-targets            identify #[rapx::verify] functions and list their safety contracts
       --debug-contracts            print contract resolutions per target and exit (no verification)
-      --no-invariant-target        skip struct invariant checks, derive safety via
-                              constructor-mutator-method chains (works with both modes)
-      --inline-ctor <MODE>        constructor inlining: true, false, default (default: default)
+      --no-invariant-target      skip standalone struct and type invariant checks;
+                                 verify constructor-mutator-method sequences instead
+      --expand-ctor <MODE>      constructor MIR mode: true, false, default (default: default)
       --postfix-repeat <N|auto>
                               extra SCC postfix repetitions during path enumeration;
                               `auto` is the default planner, a number fixes the repeat count
       --mode <MODE>               verification mode: scan, targeted (default scan)
       --crate <CRATE>             filter verification targets to the named crate
       --module <PATH>             filter verification targets to the named module path
+      --path-limit <N>            cap paths collected per checkpoint (0 selects the default)
+      --trait-impl-limit <N>      cap virtual-call impls and generic combinations (default: 1)
   -h, --help                      Print help
 ```
 
@@ -193,13 +195,15 @@ Verification modes:
 - `scan` — auto-detect: verify all functions with unsafe callees or struct invariants
 - `targeted` — only verify functions annotated with `#[rapx::verify]`
 
-The `--no-invariant-target` flag works with both modes to skip struct invariant checks and instead derive safety through constructor-mutator-method chains.
+The `--no-invariant-target` flag works with both modes to skip standalone struct and type invariant checks and instead derive safety through constructor-mutator-method chains.
 
-`--inline-ctor` accepts `true`, `false`, or `default`. `true` inlines constructors with MIR. `false` never inlines constructors; a result without an invariant stays unknown. `default` (the default value) summarizes a constructor that directly returns a struct with a source or bundled JSON invariant and inlines it when no invariant is declared. With `--no-invariant-target`, `default` inlines constructors.
+`--expand-ctor` accepts `true`, `false`, or `default`. `true` prioritizes available constructor MIR over call models; `false` skips constructor MIR. `default` skips MIR when the direct result has an invariant, and otherwise tries call models before MIR. With `--no-invariant-target`, `default` behaves like `true`.
 
 The `--postfix-repeat` option controls loop unrolling depth:
-- `auto` (default) — automatic loop-depth detection for `InBound` and `Align` contracts
-- A fixed number `N` ≥ 0 — repeat loop body up to N+1 times
+- `auto` (default) — estimate the needed repetitions for each target
+- A fixed number `N` ≥ 0 — check repeat counts from 0 through N
+
+`--path-limit` caps the paths collected per checkpoint. Paths omitted by the cap are currently treated as proved in the verdict.
 
 **Filtering targets:** `--crate` and `--module` work in any mode and can be combined:
 
