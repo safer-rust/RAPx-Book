@@ -11,16 +11,15 @@ Writing program analysis tools is challenging. In this project, we also aim to p
 
 ## Architecture
 
-The main components are:
+RAPx is organized into four top-level modules:
 
 | Module | Crate path | Purpose |
 |--------|-----------|---------|
-| **Analysis** | `rapx::analysis` | Reusable analyses for paths, aliases, dataflow, ranges, call graphs, and safety flow. |
-| **Check** | `rapx::check` | Bug detection with `SafeDrop` and `rCanary`, plus performance checks in `rapx::check::opt`. |
-| **Contract** | `rapx::contract` | Parses annotations and JSON contracts into properties, including type invariants. |
-| **Verify** | `rapx::verify` | Collects verification targets, extracts and slices paths, and checks contract properties with Z3. |
-| **VM** | `rapx::vm` | Executes relevant MIR symbolically with path-local state. Verification, `SafeDrop`, and `rCanary` use it. |
+| **Analysis** | `rapx::analysis` | Foundational static analyses — path enumeration, alias analysis, dataflow, range analysis, call graphs, API dependency graphs, heap ownership classification, and safety-flow analysis. Each analysis implements the `Analysis` trait and can be composed downstream. |
+| **Check** | `rapx::check` | Bug detection passes built on top of the analysis layer — use-after-free / dangling pointer detection (`SafeDrop`) and memory leak detection (`rCanary`). |
+| **Optimization** | `rapx::check::opt` | Performance anti-pattern detection — bounds checks, encoding inefficiencies, unnecessary cloning, suboptimal collection usage, and iterator optimizations. |
+| **Verify** | `rapx::verify` | Contract-based verification of unsafe code. Collects verification targets, resolves callee safety contracts from `#[rapx::requires]` annotations, enumerates SCC-aware CFG paths to each unsafe callsite, performs backward/forward MIR state tracking, and dispatches SMT queries via Z3 to prove or disprove safety preconditions. |
 
 ## Vision
 
-The verification module (`rapx::verify`) is positioned to become the **harness for Rust Agentic Coding** — an automated safety gate for AI-generated Rust code. As LLM-based coding agents increasingly produce `unsafe` blocks, a fast, contract-driven verifier that can independently confirm or reject the soundness of generated unsafe code is essential. RAPx's verification pipeline — from target collection through path-sensitive symbolic execution to SMT-backed property checking — provides the foundation for this role. Future directions include tighter integration with IDE and CI workflows, richer contract expressions, and scaling verification to larger crates.
+The verification module (`rapx::verify`) is positioned to become the **harness for Rust Agentic Coding** — an automated safety gate for AI-generated Rust code. As LLM-based coding agents increasingly produce `unsafe` blocks, a fast, contract-driven verifier that can independently confirm or reject the soundness of generated unsafe code is essential. RAPx's verification pipeline — from target collection through path-sensitive state tracking to SMT-backed property checking — provides the foundation for this role. Future directions include tighter integration with IDE and CI workflows, richer contract expression, and inter-procedural summary propagation to scale verification to whole crates.
