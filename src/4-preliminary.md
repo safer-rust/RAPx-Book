@@ -194,7 +194,7 @@ The `RapCallback` struct in `lib.rs` implements `rustc_driver::Callbacks` with t
 
 ## The Analysis Trait
 
-Every RAPx analysis module implements the [`Analysis`] trait defined in [`rapx/src/analysis/mod.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/analysis/mod.rs):
+Every RAPx analysis module implements the [`Analysis`] trait defined in [`rapx/src/analysis.rs`](https://github.com/safer-rust/RAPx/blob/main/rapx/src/analysis.rs):
 
 ```rust
 pub trait Analysis {
