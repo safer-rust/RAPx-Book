@@ -24,6 +24,7 @@
   - [Safety Property Contracts](./8.3-contracts.md)
   - [The Verification Pipeline](./8.4-pipeline.md)
   - [Verification Approach](./8.5-verification-approach.md)
+  - [Limitations](./8.6-limitations.md)
 - [Utilities](./9-utilities.md)
   - [Logging](./9.1-log.md)
 - [Case Study](./10-casestudy.md)
