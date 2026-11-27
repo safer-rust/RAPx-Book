@@ -9,4 +9,4 @@ Unsafe code enables low-level operations while circumventing Rust's safety guara
 - [8.3 Safety Property Contracts](./8.3-contracts.md) — built-in property reference, user-defined contracts (the `def` DSL), contract annotation (direct + JSON), and inspecting with `--debug-contracts`
 - [8.4 The Verification Pipeline](./8.4-pipeline.md) — a walkthrough using a linked-list case study: loop-repeat planning, path extraction, backward slicing, symbolic VM execution, and property checking
 - [8.5 Verification Approach](./8.5-verification-approach.md) — property deduction rules and the Alias hazard check
-- [8.6 Limitations](./8.6-limitations.md) — what a `SOUND` result does not cover: monomorphization, loops, trusted specifications, and tracked issues
+- [8.6 Limitations](./8.6-limitations.md) — what a `SOUND` result does not cover: monomorphization and loops
